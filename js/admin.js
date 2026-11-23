@@ -11,9 +11,14 @@ class AdminController {
     this.searchOrderQuery = '';
     this.editingItemId = null;
     this.soundEnabled = true;
-    this.lastOrderCount = 0;
     this.deferredPrompt = null;
     this.audioCtx = null;
+    this.toastTimer = null;
+    this.activeToastOrderId = null;
+
+    // Track known order IDs so sound & popup trigger ONLY when a NEW order is placed
+    this.knownOrderIds = new Set(store.getOrders().map(o => o.id));
+    this.isInitialized = false;
 
     this.init();
   }
@@ -34,6 +39,16 @@ class AdminController {
 
     this.setupEventListeners();
     this.setupPWAInstall();
+
+    // Enable alert triggers after initial load grace period
+    setTimeout(() => {
+      this.isInitialized = true;
+    }, 1200);
+
+    // Request browser system notification permission if supported
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
   }
 
   // --- PWA INSTALLATION PROMPT ---
@@ -290,13 +305,92 @@ class AdminController {
 
   // --- ORDERS TAB LOGIC ---
   onOrdersChanged(orders) {
-    if (orders.length > this.lastOrderCount) {
-      this.playNotificationChime();
+    if (this.isInitialized) {
+      // Find orders that were NOT previously known (genuinely newly placed orders!)
+      const newlyPlacedOrders = orders.filter(o => !this.knownOrderIds.has(o.id));
+      if (newlyPlacedOrders.length > 0) {
+        const latestOrder = newlyPlacedOrders[0];
+        // 1. Play Audio Chime & Phone Vibration
+        this.playNotificationChime();
+        // 2. Show in-app visual notification toast popup
+        this.showNewOrderToast(latestOrder);
+        // 3. Trigger browser system push notification (if allowed)
+        this.sendSystemPushNotification(latestOrder);
+      }
     }
-    this.lastOrderCount = orders.length;
+
+    // Add all current IDs to known set
+    orders.forEach(o => this.knownOrderIds.add(o.id));
+
     this.updateStats();
     if (this.activeTab === 'orders') {
       this.renderOrders();
+    }
+  }
+
+  showNewOrderToast(order) {
+    const toast = document.getElementById('new-order-toast');
+    if (!toast) return;
+
+    this.activeToastOrderId = order.id;
+    const titleEl = document.getElementById('toast-title');
+    const itemsEl = document.getElementById('toast-items');
+    const timeEl = document.getElementById('toast-time');
+
+    if (titleEl) {
+      titleEl.innerHTML = `<span class="text-orange-400">TABLE ${order.tableNo}</span> &bull; ₹${order.totalAmount}`;
+    }
+    if (itemsEl) {
+      const summary = (order.items || []).map(i => `${i.name} x${i.quantity}`).join(', ');
+      itemsEl.textContent = summary || 'Items list';
+    }
+    if (timeEl) {
+      timeEl.textContent = 'Abhi';
+    }
+
+    toast.classList.remove('hidden');
+    toast.classList.add('flex');
+
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => {
+      this.dismissToast();
+    }, 8000);
+  }
+
+  dismissToast() {
+    const toast = document.getElementById('new-order-toast');
+    if (toast) {
+      toast.classList.add('hidden');
+      toast.classList.remove('flex');
+    }
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+  }
+
+  viewToastOrder() {
+    this.dismissToast();
+    this.switchTab('orders');
+    this.setOrderFilter('all');
+    if (this.activeToastOrderId) {
+      const input = document.getElementById('search-orders-input');
+      if (input) {
+        input.value = this.activeToastOrderId;
+        this.searchOrderQuery = this.activeToastOrderId;
+        this.renderOrders();
+      }
+    }
+  }
+
+  sendSystemPushNotification(order) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        const itemsSummary = (order.items || []).map(i => `${i.name} x${i.quantity}`).join(', ');
+        new Notification(`🔔 Naya Order: TABLE ${order.tableNo}`, {
+          body: `₹${order.totalAmount} - ${itemsSummary}`,
+          icon: 'assets/icon-192.png'
+        });
+      } catch (e) {
+        console.warn('System push notification notice:', e);
+      }
     }
   }
 
@@ -772,12 +866,6 @@ class AdminController {
     if (taglineInput) taglineInput.value = res.tagline || '';
     if (adminIdInput) adminIdInput.value = res.adminId || '';
     if (adminPinInput) adminPinInput.value = res.adminPin || '';
-
-    const fbConfig = store.getFirebaseConfig();
-    const fbTextarea = document.getElementById('settings-firebase-config');
-    if (fbTextarea && fbConfig) {
-      fbTextarea.value = JSON.stringify(fbConfig, null, 2);
-    }
   }
 
   saveSettingsForm(e) {
@@ -802,25 +890,6 @@ class AdminController {
 
     alert('Admin User ID & PIN successfully updated to Cloud! Ab aap kisi bhi device se in credentials se login kar sakte hain.');
     this.renderHeader();
-  }
-
-  saveFirebaseConfig() {
-    const textarea = document.getElementById('settings-firebase-config');
-    if (!textarea) return;
-    const val = textarea.value.trim();
-
-    try {
-      const config = JSON.parse(val);
-      if (!config.apiKey || !config.projectId) {
-        alert('Invalid Firebase Config! Isme apiKey aur projectId hona zaroori hai.');
-        return;
-      }
-      store.saveFirebaseConfig(config);
-      alert('Firebase Cloud Database configuration save ho gayi hai!');
-      this.renderHeader();
-    } catch (e) {
-      alert('JSON format galat hai! Kripya valid JSON object paste karein.');
-    }
   }
 
   exportDataBackup() {

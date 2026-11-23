@@ -41,6 +41,56 @@
 <body class="bg-stone-100 text-stone-800 antialiased min-h-screen flex flex-col selection:bg-orange-100 selection:text-orange-900 pb-16 md:pb-0">
 
   <!-- ========================================== -->
+  <!-- FLOATING NEW ORDER NOTIFICATION POPUP      -->
+  <!-- ========================================== -->
+  <div 
+    id="new-order-toast" 
+    class="hidden fixed top-4 right-4 z-50 max-w-sm w-[calc(100%-2rem)] bg-stone-900 text-white p-4 rounded-2xl shadow-2xl border border-orange-500/80 animate-slide-up"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex items-start gap-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-600 text-white flex items-center justify-center text-xl flex-shrink-0 animate-bounce">
+          🔔
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-[10px] font-black uppercase tracking-wider text-orange-400 bg-orange-950/80 px-2 py-0.5 rounded-full border border-orange-500/40">
+              Naya Order Aaya!
+            </span>
+            <span id="toast-time" class="text-[10px] text-stone-400">Abhi</span>
+          </div>
+          <h4 id="toast-title" class="text-sm font-black text-white mt-1">
+            TABLE - &bull; ₹0
+          </h4>
+          <p id="toast-items" class="text-[11px] text-stone-300 mt-0.5 line-clamp-1">
+            Items...
+          </p>
+          <div class="mt-2.5 flex items-center gap-2">
+            <button 
+              onclick="admin.viewToastOrder()"
+              class="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-bold rounded-lg shadow-sm transition active:scale-95"
+            >
+              Order Dekhein &rarr;
+            </button>
+            <button 
+              onclick="admin.dismissToast()"
+              class="px-2.5 py-1 text-stone-400 hover:text-stone-200 text-[11px] font-semibold"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      </div>
+      <button 
+        onclick="admin.dismissToast()" 
+        class="text-stone-400 hover:text-white p-1 text-sm leading-none"
+      >
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
   <!-- 1. ADMIN LOGIN CARD (When Not Logged In)   -->
   <!-- ========================================== -->
   <div id="admin-login-card" class="flex-1 flex items-center justify-center p-4">
@@ -395,35 +445,21 @@
           </form>
         </div>
 
-        <!-- Cloud Database (Firebase) Status Card -->
-        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-2xs">
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm sm:text-base font-bold text-stone-900">☁️ Cloud Database (Firebase Project)</h3>
-            <span class="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
-              Connected: stockora-77
-            </span>
+        <!-- Cloud Database Sync Status (Secure: No API Keys Exposed) -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-2xs flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-lg border border-emerald-200">
+              ☁️
+            </div>
+            <div>
+              <h4 class="text-xs sm:text-sm font-bold text-stone-900">Cloud Real-Time Sync</h4>
+              <p class="text-[11px] text-stone-500">Live multi-device database active & secure</p>
+            </div>
           </div>
-
-          <p class="text-xs text-stone-500 mb-4 leading-relaxed">
-            Aapka Firebase Project <strong>stockora-77</strong> pre-configured hai! Jab bhi koi customer apne phone se QR code scan karke order karega, wo bina kisi delay ke seedhe aapke admin panel me notification sound ke sath appear hoga.
-          </p>
-
-          <div class="space-y-2">
-            <label class="block text-xs font-bold text-stone-700">Firebase Configuration JSON</label>
-            <textarea 
-              id="settings-firebase-config" 
-              rows="5" 
-              class="w-full p-2.5 font-mono text-[11px] bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-500"
-            ></textarea>
-
-            <button 
-              type="button" 
-              onclick="admin.saveFirebaseConfig()" 
-              class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow transition"
-            >
-              Update Cloud Config
-            </button>
-          </div>
+          <span class="px-2.5 py-1 text-[11px] font-bold rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Live Synced
+          </span>
         </div>
 
         <!-- Backup & Demo Data Utilities -->
