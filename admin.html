@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard - Restaurant Management</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            orange: {
+              50: '#fff7ed',
+              100: '#ffedd5',
+              200: '#fed7aa',
+              500: '#f97316',
+              600: '#ea580c',
+              700: '#c2410c',
+              800: '#9a3412',
+              900: '#7c2d12',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/custom.css" />
+</head>
+<body class="bg-stone-100 text-stone-800 antialiased min-h-screen flex flex-col selection:bg-orange-100 selection:text-orange-900">
+
+  <!-- ========================================== -->
+  <!-- 1. ADMIN LOGIN CARD (When Not Logged In) -->
+  <!-- ========================================== -->
+  <div id="admin-login-card" class="flex-1 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl border border-stone-200/90 max-w-sm w-full p-6 sm:p-8 shadow-xl text-center">
+      <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-sm">
+        🔒
+      </div>
+
+      <h2 class="text-xl font-black text-stone-900 mb-1">
+        Restaurant Owner Login
+      </h2>
+      <p class="text-xs text-stone-500 mb-6">
+        Orders manage karne aur Menu edit karne ke liye apna Admin ID aur PIN enter karein.
+      </p>
+
+      <!-- Error Message Banner -->
+      <div id="login-error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium text-left"></div>
+
+      <form id="admin-login-form" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            Admin User ID
+          </label>
+          <input 
+            type="text" 
+            id="admin-login-id" 
+            placeholder="e.g. admin" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm font-mono text-stone-900 focus:outline-none focus:border-orange-500"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">
+            Security PIN
+          </label>
+          <input 
+            type="password" 
+            id="admin-login-pin" 
+            placeholder="••••" 
+            required 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm font-mono text-stone-900 focus:outline-none focus:border-orange-500"
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition active:scale-95"
+        >
+          Login to Dashboard &rarr;
+        </button>
+      </form>
+
+      <div class="mt-6 pt-4 border-t border-stone-100">
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs font-bold text-stone-500 hover:text-orange-600 transition">
+          <span>&larr;</span>
+          <span>Customer Website par wapas jayein</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. ADMIN DASHBOARD (When Logged In) -->
+  <!-- ========================================== -->
+  <div id="admin-dashboard" class="hidden flex-1 flex flex-col">
+    <!-- Admin Topbar -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-40 shadow-2xs">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <!-- Brand & Cloud Pill -->
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+            👨‍🍳
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h2 id="admin-res-name" class="font-extrabold text-stone-900 text-base leading-tight">
+                Restaurant Admin
+              </h2>
+              <span id="cloud-sync-status-pill" class="text-[10px]"></span>
+            </div>
+            <p class="text-[11px] text-stone-400 font-medium">Owner Management Portal</p>
+          </div>
+        </div>
+
+        <!-- Controls: Sound Alert, Customer View, Logout -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Audio toggle -->
+          <button 
+            id="toggle-sound-btn" 
+            onclick="admin.toggleSound()"
+            class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 transition"
+          >
+            🔔 <span class="hidden sm:inline">Sound: ON</span>
+          </button>
+
+          <!-- Customer View Link -->
+          <a 
+            href="index.html#menu" 
+            target="_blank" 
+            class="px-3 py-1.5 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition flex items-center gap-1"
+          >
+            <span>🍽️</span>
+            <span class="hidden sm:inline">View Menu Site</span>
+          </a>
+
+          <!-- Logout Button -->
+          <button 
+            onclick="admin.handleLogout()" 
+            class="px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg border border-red-200 transition"
+          >
+            Logout
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Subheader: Metrics Summary Row -->
+    <div class="bg-white border-b border-stone-200 py-4 px-4 sm:px-6">
+      <div class="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div class="bg-stone-50 border border-stone-200/80 p-3.5 rounded-2xl">
+          <span class="text-xs text-stone-500 font-medium">Today's Orders</span>
+          <p id="stat-total-orders" class="text-2xl font-black text-stone-900 leading-tight">0</p>
+        </div>
+
+        <div class="bg-stone-50 border border-stone-200/80 p-3.5 rounded-2xl">
+          <span class="text-xs text-stone-500 font-medium">Cash Sales (Today)</span>
+          <p id="stat-cash-sales" class="text-2xl font-black text-emerald-600 leading-tight">₹0</p>
+        </div>
+
+        <div class="bg-stone-50 border border-stone-200/80 p-3.5 rounded-2xl">
+          <span class="text-xs text-stone-500 font-medium">In Kitchen / Pending</span>
+          <p id="stat-active-orders" class="text-2xl font-black text-stone-900 leading-tight">0</p>
+        </div>
+
+        <div class="bg-stone-50 border border-stone-200/80 p-3.5 rounded-2xl">
+          <span class="text-xs text-stone-500 font-medium">Active Menu Items</span>
+          <p id="stat-menu-items" class="text-2xl font-black text-stone-900 leading-tight">0</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="max-w-7xl mx-auto w-full px-4 sm:px-6 pt-6">
+      <div class="flex items-center gap-2 border-b border-stone-200 pb-3">
+        <button 
+          id="tab-btn-orders" 
+          onclick="admin.switchTab('orders')"
+          class="px-4 py-2 text-sm font-bold rounded-xl bg-orange-600 text-white shadow-sm transition"
+        >
+          📋 Live Orders Feed
+        </button>
+
+        <button 
+          id="tab-btn-menu" 
+          onclick="admin.switchTab('menu')"
+          class="px-4 py-2 text-sm font-semibold rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition"
+        >
+          🍽️ Menu Management
+        </button>
+
+        <button 
+          id="tab-btn-settings" 
+          onclick="admin.switchTab('settings')"
+          class="px-4 py-2 text-sm font-semibold rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition"
+        >
+          ⚙️ Settings & Cloud DB
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB CONTENTS -->
+    <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 flex-1">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: LIVE ORDERS FEED -->
+      <!-- ========================================== -->
+      <section id="tab-view-orders" class="space-y-4">
+        <!-- Order Filters & Search -->
+        <div class="bg-white p-3.5 rounded-2xl border border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-2xs">
+          <!-- Filter Buttons -->
+          <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto no-scrollbar">
+            <button 
+              onclick="admin.setOrderFilter('active')" 
+              data-filter="active" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-stone-900 text-white transition whitespace-nowrap"
+            >
+              Active Orders
+            </button>
+            <button 
+              onclick="admin.setOrderFilter('pending')" 
+              data-filter="pending" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap"
+            >
+              Pending
+            </button>
+            <button 
+              onclick="admin.setOrderFilter('preparing')" 
+              data-filter="preparing" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap"
+            >
+              In Kitchen
+            </button>
+            <button 
+              onclick="admin.setOrderFilter('ready')" 
+              data-filter="ready" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap"
+            >
+              Ready / Served
+            </button>
+            <button 
+              onclick="admin.setOrderFilter('completed')" 
+              data-filter="completed" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap"
+            >
+              Completed
+            </button>
+            <button 
+              onclick="admin.setOrderFilter('all')" 
+              data-filter="all" 
+              class="order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap"
+            >
+              All History
+            </button>
+          </div>
+
+          <!-- Order Search -->
+          <div class="w-full sm:w-64">
+            <input 
+              type="text" 
+              id="search-orders-input" 
+              placeholder="Search table, phone, ID..."
+              class="w-full px-3 py-1.5 text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-orange-500"
+            />
+          </div>
+        </div>
+
+        <!-- Orders Grid / Feed -->
+        <div id="orders-feed-container" class="space-y-3">
+          <!-- Rendered by admin.renderOrders() -->
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: MENU MANAGEMENT -->
+      <!-- ========================================== -->
+      <section id="tab-view-menu" class="hidden space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="font-extrabold text-base text-stone-900">Food Menu Items</h3>
+            <p class="text-xs text-stone-500">Items create karein, price aur photo update karein ya out-of-stock mark karein.</p>
+          </div>
+
+          <button 
+            onclick="admin.openItemModal()"
+            class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5"
+          >
+            <span>+</span>
+            <span>Naya Food Item Add Karein</span>
+          </button>
+        </div>
+
+        <!-- Menu Table Container -->
+        <div id="admin-menu-list" class="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+          <!-- Rendered by admin.renderMenuTable() -->
+        </div>
+      </section>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: SETTINGS & CLOUD DB -->
+      <!-- ========================================== -->
+      <section id="tab-view-settings" class="hidden max-w-3xl space-y-6">
+        <!-- Restaurant Details & PIN Card -->
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs">
+          <h3 class="text-base font-bold text-stone-900 mb-1">Restaurant Profile & Credentials</h3>
+          <p class="text-xs text-stone-500 mb-5">Restaurant ka naam aur Admin Login ID / PIN badalne ke liye.</p>
+
+          <form id="restaurant-settings-form" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Restaurant Name</label>
+                <input 
+                  type="text" 
+                  id="settings-res-name" 
+                  required 
+                  class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Tagline</label>
+                <input 
+                  type="text" 
+                  id="settings-res-tagline" 
+                  class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Admin User ID</label>
+                <input 
+                  type="text" 
+                  id="settings-admin-id" 
+                  required 
+                  class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono font-semibold text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Admin PIN (Password)</label>
+                <input 
+                  type="password" 
+                  id="settings-admin-pin" 
+                  required 
+                  class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-stone-900 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            <button 
+              type="submit" 
+              class="px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold text-xs rounded-xl shadow transition"
+            >
+              Save Profile & Credentials
+            </button>
+          </form>
+        </div>
+
+        <!-- Cloud Database (Firebase) Integration Card -->
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-base font-bold text-stone-900">☁️ Cloud Database (Firebase Sync)</h3>
+            <span class="text-[11px] font-semibold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-200">
+              Optional / 100% Free
+            </span>
+          </div>
+
+          <p class="text-xs text-stone-500 mb-4 leading-relaxed">
+            Data abhi browser me safe hai. Agar aap chahte hain ki customer apne kisi bhi phone se order kare aur aapke mobile/PC par real-time me order a jaye, to apna free Firebase configuration yahan paste karein.
+          </p>
+
+          <div class="bg-stone-50 p-3 rounded-xl border border-stone-200 text-xs text-stone-600 mb-4 space-y-1">
+            <p class="font-bold text-stone-800">Kaise connect karein? (Only 2 Minutes):</p>
+            <p>1. <a href="https://console.firebase.google.com" target="_blank" class="text-orange-600 underline font-semibold">Firebase Console</a> par jakar free project banayein.</p>
+            <p>2. "Firestore Database" enable karein aur Web App config copy karein.</p>
+            <p>3. Niche diye gaye box me config JSON paste karke <strong>"Connect Cloud DB"</strong> dabayein.</p>
+          </div>
+
+          <div class="space-y-3">
+            <textarea 
+              id="settings-firebase-config" 
+              rows="5" 
+              placeholder='{\n  "apiKey": "AIzaSy...",\n  "projectId": "my-restaurant-123",\n  ...\n}'
+              class="w-full p-3 font-mono text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:border-orange-500"
+            ></textarea>
+
+            <button 
+              type="button" 
+              onclick="admin.saveFirebaseConfig()" 
+              class="px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow transition"
+            >
+              Connect Cloud DB
+            </button>
+          </div>
+        </div>
+
+        <!-- Backup & Demo Data Utilities -->
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+          <h3 class="text-base font-bold text-stone-900">💾 Data Backup & Maintenance</h3>
+          
+          <div class="flex flex-wrap items-center gap-3">
+            <button 
+              type="button" 
+              onclick="admin.exportDataBackup()" 
+              class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+            >
+              <span>📥</span>
+              <span>Download Data Backup (JSON)</span>
+            </button>
+
+            <button 
+              type="button" 
+              onclick="admin.importDataPrompt()" 
+              class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+            >
+              <span>📤</span>
+              <span>Restore Backup</span>
+            </button>
+
+            <button 
+              type="button" 
+              onclick="admin.loadSampleMenuConfirm()" 
+              class="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+            >
+              <span>🔄</span>
+              <span>Reload 10 Demo Items</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ADD / EDIT MENU ITEM -->
+  <!-- ========================================== -->
+  <div 
+    id="item-edit-modal" 
+    class="hidden fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs items-center justify-center p-4 overflow-y-auto"
+  >
+    <div class="bg-white rounded-3xl border border-stone-200 max-w-lg w-full p-6 shadow-2xl animate-slide-up">
+      <div class="flex justify-between items-center border-b border-stone-100 pb-3 mb-4">
+        <h3 id="modal-item-title" class="text-base font-extrabold text-stone-900">
+          Naya Food Item Add Karein
+        </h3>
+        <button 
+          onclick="admin.closeItemModal()"
+          class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition"
+        >
+          ✕
+        </button>
+      </div>
+
+      <form id="item-edit-form" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Item Ka Naam *</label>
+          <input 
+            type="text" 
+            id="item-form-name" 
+            placeholder="e.g. Kadai Paneer, Cold Coffee..." 
+            required 
+            class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Category *</label>
+            <input 
+              type="text" 
+              id="item-form-category" 
+              placeholder="e.g. Main Course, Starters..." 
+              required 
+              list="category-suggestions"
+              class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
+            />
+            <datalist id="category-suggestions">
+              <option value="Starters">
+              <option value="Main Course">
+              <option value="Fast Food">
+              <option value="Biryani">
+              <option value="Beverages">
+              <option value="Desserts">
+            </datalist>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Price (₹) *</label>
+            <input 
+              type="number" 
+              id="item-form-price" 
+              placeholder="e.g. 180" 
+              required 
+              min="1"
+              class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-extrabold text-stone-900 focus:outline-none focus:border-orange-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Veg ya Non-Veg *</label>
+          <select 
+            id="item-form-isveg" 
+            class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+          >
+            <option value="true">🟢 Pure Veg</option>
+            <option value="false">🔴 Non-Veg</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Description</label>
+          <textarea 
+            id="item-form-desc" 
+            rows="2" 
+            placeholder="Short tasty details about this dish..." 
+            class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Image URL (Optional)</label>
+          <input 
+            type="url" 
+            id="item-form-image" 
+            placeholder="https://images.unsplash.com/..." 
+            class="w-full px-3.5 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
+          />
+          <p class="text-[11px] text-stone-400 mt-0.5">Khali chhodne par default food picture lag jayegi.</p>
+        </div>
+
+        <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+          <button 
+            type="button" 
+            onclick="admin.closeItemModal()"
+            class="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs rounded-xl transition"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="px-5 py-2 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl shadow transition"
+          >
+            Save Item
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT FILES -->
+  <script src="js/store.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
