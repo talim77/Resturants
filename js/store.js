@@ -1,7 +1,9 @@
 /**
  * Restaurant App - Unified Store & Cloud Sync Layer
- * Integrated with user's Firebase Project: stockora-77
- * Full real-time synchronization for Multi-Device ordering and Admin Management.
+ * Secure Cloud Configuration:
+ * - Reads from local 'firebase-config.js' (ignored by git via .gitignore)
+ * - OR reads from Admin Panel Settings (stored securely in browser localStorage)
+ * - ZERO hardcoded API keys in public repository code.
  */
 
 const STORAGE_KEYS = {
@@ -10,16 +12,6 @@ const STORAGE_KEYS = {
   ORDERS: 'resturant_orders',
   FIREBASE_CONFIG: 'resturant_firebase_config',
   ADMIN_SESSION: 'resturant_admin_session'
-};
-
-// User's Pre-Configured Cloud Database (stockora-77)
-const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyCP2ATZCPVHJJDgtBpu89Ypwkep0Q-oSaM",
-  authDomain: "stockora-77.firebaseapp.com",
-  projectId: "stockora-77",
-  storageBucket: "stockora-77.firebasestorage.app",
-  messagingSenderId: "275521628563",
-  appId: "1:275521628563:web:restaurant"
 };
 
 // Initial Sample Menu for First-Time Setup
@@ -149,7 +141,7 @@ class AppStore {
       }
     });
 
-    // Auto initialize Cloud Firebase on launch
+    // Auto initialize Cloud Firebase on launch if config is available
     this.initCloud();
   }
 
@@ -309,7 +301,6 @@ class AppStore {
       timerSeconds: 300 // 5 Minutes
     };
 
-    // Prepend new order to list
     orders.unshift(newOrder);
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
     this.notify('orders', orders);
@@ -365,14 +356,28 @@ class AppStore {
     sessionStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
   }
 
-  // --- CLOUD FIREBASE SYNC (stockora-77) ---
+  // --- SECURE CLOUD FIREBASE CONFIG RESOLUTION ---
   getFirebaseConfig() {
+    // 1. Check user-configured config in localStorage (set securely via Admin Settings)
     try {
-      const raw = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
-      return raw ? JSON.parse(raw) : DEFAULT_FIREBASE_CONFIG;
-    } catch {
-      return DEFAULT_FIREBASE_CONFIG;
+      const saved = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.apiKey && parsed.apiKey !== 'YOUR_FIREBASE_API_KEY') {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Storage config read error:', e);
     }
+
+    // 2. Check window.FIREBASE_CONFIG loaded from local gitignored 'firebase-config.js'
+    if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.apiKey !== 'YOUR_FIREBASE_API_KEY') {
+      return window.FIREBASE_CONFIG;
+    }
+
+    // 3. Fallback: No cloud config set (runs offline/local storage safely)
+    return null;
   }
 
   saveFirebaseConfig(config) {
@@ -390,7 +395,7 @@ class AppStore {
     try {
       // Dynamic import of official Firebase SDK modules
       const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-      const { getFirestore, doc, setDoc, onSnapshot, getDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+      const { getFirestore, doc, setDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
       this.firebaseApp = initializeApp(config);
       this.firestore = getFirestore(this.firebaseApp);
@@ -443,6 +448,7 @@ class AppStore {
     if (!this.isCloudConnected || !this.firestore) return;
     try {
       const config = this.getFirebaseConfig();
+      if (!config) return;
       const restaurantId = config.projectId || 'main_restaurant';
       const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 

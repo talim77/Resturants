@@ -1,0 +1,6 @@
+# Secret / Private configuration files
+firebase-config.js
+.env
+*.local
+.DS_Store
+Thumbs.db

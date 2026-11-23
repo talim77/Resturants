@@ -1,6 +1,6 @@
 # 🍽️ Apna Restaurant - Mobile-First Web App & Admin Portal (PWA)
 
-A lightweight, mobile-first, production-grade Restaurant Menu & Table Ordering Web Application designed for local businesses. It operates completely on **GitHub Pages** (zero-server build requirement) with offline-first local storage and real-time **Firebase Cloud Firestore** synchronization (pre-configured with project `stockora-77`).
+A lightweight, mobile-first, production-grade Restaurant Menu & Table Ordering Web Application designed for local businesses. It operates completely on **GitHub Pages** (zero-server build requirement) with offline-first local storage and optional real-time **Firebase Cloud Firestore** synchronization.
 
 ---
 
@@ -23,8 +23,9 @@ A lightweight, mobile-first, production-grade Restaurant Menu & Table Ordering W
 
 ---
 
-### ☁️ 3. Real-Time Cloud Sync & Sound Alerts (Firebase Project: `stockora-77`)
-- Pre-configured with the user's Firebase project: **`stockora-77`**.
+### ☁️ 3. Real-Time Cloud Sync & Sound Alerts (Secure Configuration)
+- **Zero Secrets in Code**: No private Firebase API keys or project IDs are hardcoded in the public repository.
+- Uses `firebase-config.js` (protected via `.gitignore`) or direct input via **Admin Panel &rarr; Settings &rarr; Cloud Database**.
 - When a customer places an order from their phone on Table 4:
   1. The order is written directly to Cloud Firestore.
   2. The Admin panel on the owner's phone/PC instantly receives the order in real-time.
