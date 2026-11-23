@@ -1,6 +1,5 @@
-# Secret / Private configuration files
-firebase-config.js
-.env
-*.local
+# OS & IDE files
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

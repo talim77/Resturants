@@ -19,9 +19,6 @@ class RestaurantApp {
   }
 
   init() {
-    // Check first-time setup
-    this.checkSetup();
-
     // Event listeners for store changes
     store.subscribe('restaurant', () => this.renderHeaderAndWelcome());
     store.subscribe('menu', () => this.renderMenu());
@@ -42,77 +39,6 @@ class RestaurantApp {
     this.updateCartUI();
   }
 
-  // --- FIRST-TIME SETUP CHECK ---
-  checkSetup() {
-    const restaurant = store.getRestaurant();
-    const setupModal = document.getElementById('setup-modal');
-    if (!restaurant || !restaurant.isSetupDone) {
-      if (setupModal) {
-        setupModal.classList.remove('hidden');
-        setupModal.classList.add('flex');
-      }
-    } else {
-      if (setupModal) {
-        setupModal.classList.add('hidden');
-        setupModal.classList.remove('flex');
-      }
-    }
-  }
-
-  completeSetup(e) {
-    e.preventDefault();
-    const nameInput = document.getElementById('setup-res-name');
-    const adminIdInput = document.getElementById('setup-admin-id');
-    const pinInput = document.getElementById('setup-admin-pin');
-    const loadSampleCheckbox = document.getElementById('setup-load-samples');
-
-    const name = nameInput.value.trim();
-    const adminId = adminIdInput.value.trim();
-    const pin = pinInput.value.trim();
-
-    if (!name) {
-      alert('Kripya Restaurant ka naam enter karein!');
-      nameInput.focus();
-      return;
-    }
-    if (!adminId) {
-      alert('Kripya Admin User ID enter karein!');
-      adminIdInput.focus();
-      return;
-    }
-    if (!pin || pin.length < 3) {
-      alert('Kripya kam se kam 3-4 digit ka Admin PIN rakhein!');
-      pinInput.focus();
-      return;
-    }
-
-    // Save restaurant settings
-    store.saveRestaurant({
-      name: name,
-      tagline: 'Fresh Flavors & Authentic Hospitality',
-      adminId: adminId,
-      adminPin: pin,
-      currency: '₹',
-      tableCount: 15
-    });
-
-    // Optionally load starter menu
-    if (loadSampleCheckbox && loadSampleCheckbox.checked) {
-      store.loadDefaultMenu();
-    }
-
-    // Hide setup modal permanently
-    const setupModal = document.getElementById('setup-modal');
-    if (setupModal) {
-      setupModal.classList.add('hidden');
-      setupModal.classList.remove('flex');
-    }
-
-    // Go to welcome page
-    window.location.hash = '#welcome';
-    this.renderHeaderAndWelcome();
-    this.renderMenu();
-  }
 
   // --- ROUTING ---
   handleRouting() {
@@ -663,11 +589,6 @@ class RestaurantApp {
 
   // --- SETUP EVENT LISTENERS ---
   setupEventListeners() {
-    const setupForm = document.getElementById('first-time-setup-form');
-    if (setupForm) {
-      setupForm.addEventListener('submit', (e) => this.completeSetup(e));
-    }
-
     const searchInput = document.getElementById('food-search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => this.setSearch(e.target.value));

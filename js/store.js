@@ -1,9 +1,8 @@
 /**
  * Restaurant App - Unified Store & Cloud Sync Layer
- * Secure Cloud Configuration:
- * - Reads from local 'firebase-config.js' (ignored by git via .gitignore)
- * - OR reads from Admin Panel Settings (stored securely in browser localStorage)
- * - ZERO hardcoded API keys in public repository code.
+ * Integrated with user's Firebase Project: stockora-77
+ * Full real-time synchronization for Multi-Device ordering and Admin Management.
+ * Single Restaurant Architecture: No new device will ever see a setup/creation popup.
  */
 
 const STORAGE_KEYS = {
@@ -14,7 +13,28 @@ const STORAGE_KEYS = {
   ADMIN_SESSION: 'resturant_admin_session'
 };
 
-// Initial Sample Menu for First-Time Setup
+// User's Pre-Configured Cloud Database (stockora-77)
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCP2ATZCPVHJJDgtBpu89Ypwkep0Q-oSaM",
+  authDomain: "stockora-77.firebaseapp.com",
+  projectId: "stockora-77",
+  storageBucket: "stockora-77.firebasestorage.app",
+  messagingSenderId: "275521628563",
+  appId: "1:275521628563:web:restaurant"
+};
+
+// Pre-configured Single Restaurant Profile (No creation popup on any device!)
+const DEFAULT_RESTAURANT_INFO = {
+  isSetupDone: true,
+  name: "Patna Biriyani",
+  tagline: "Fresh Flavors & Health meals",
+  adminId: "admin",
+  adminPin: "1234",
+  currency: "₹",
+  tableCount: 15
+};
+
+// Initial Sample Menu for Restaurant
 const DEFAULT_MENU_ITEMS = [
   {
     id: 'item_1',
@@ -141,7 +161,7 @@ class AppStore {
       }
     });
 
-    // Auto initialize Cloud Firebase on launch if config is available
+    // Auto initialize Cloud Firebase on launch
     this.initCloud();
   }
 
@@ -172,15 +192,21 @@ class AppStore {
   getRestaurant() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESTAURANT);
-      return data ? JSON.parse(data) : null;
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (parsed && parsed.name) {
+          return { ...DEFAULT_RESTAURANT_INFO, ...parsed, isSetupDone: true };
+        }
+      }
     } catch (e) {
       console.error('Error reading restaurant info:', e);
-      return null;
     }
+    // Return pre-configured single restaurant profile
+    return DEFAULT_RESTAURANT_INFO;
   }
 
   saveRestaurant(data) {
-    const current = this.getRestaurant() || {};
+    const current = this.getRestaurant();
     const updated = {
       ...current,
       ...data,
@@ -200,13 +226,16 @@ class AppStore {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.MENU);
       if (data) {
-        return JSON.parse(data);
+        const parsed = JSON.parse(data);
+        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
-      return [];
     } catch (e) {
       console.error('Error reading menu:', e);
-      return [];
     }
+    // Always return default menu items if local storage is fresh
+    return DEFAULT_MENU_ITEMS;
   }
 
   saveMenu(menuItems) {
@@ -217,7 +246,7 @@ class AppStore {
   }
 
   addMenuItem(item) {
-    const menu = this.getMenu();
+    const menu = [...this.getMenu()];
     const newItem = {
       id: 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
       name: item.name.trim(),
@@ -235,7 +264,7 @@ class AppStore {
   }
 
   updateMenuItem(id, updates) {
-    const menu = this.getMenu();
+    const menu = [...this.getMenu()];
     const index = menu.findIndex(i => i.id === id);
     if (index !== -1) {
       menu[index] = { ...menu[index], ...updates, updatedAt: new Date().toISOString() };
@@ -246,14 +275,13 @@ class AppStore {
   }
 
   deleteMenuItem(id) {
-    let menu = this.getMenu();
-    menu = menu.filter(i => i.id !== id);
+    let menu = this.getMenu().filter(i => i.id !== id);
     this.saveMenu(menu);
     return true;
   }
 
   toggleItemAvailability(id) {
-    const menu = this.getMenu();
+    const menu = [...this.getMenu()];
     const item = menu.find(i => i.id === id);
     if (item) {
       item.isAvailable = !item.isAvailable;
@@ -264,10 +292,7 @@ class AppStore {
   }
 
   loadDefaultMenu() {
-    const existing = this.getMenu();
-    if (existing.length === 0) {
-      this.saveMenu(DEFAULT_MENU_ITEMS);
-    }
+    this.saveMenu(DEFAULT_MENU_ITEMS);
   }
 
   // --- ORDERS MANAGEMENT ---
@@ -294,7 +319,7 @@ class AppStore {
       customerName: orderData.customerName ? String(orderData.customerName).trim() : '',
       items: orderData.items || [],
       totalAmount: parseFloat(orderData.totalAmount) || 0,
-      paymentMode: 'CASH', // User specification: Full Cash Mode
+      paymentMode: 'CASH', // 100% Cash Mode
       status: 'pending', // 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled'
       placedAt: Date.now(),
       placedAtTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -328,10 +353,13 @@ class AppStore {
   // --- ADMIN AUTHENTICATION ---
   verifyAdmin(adminId, pin) {
     const restaurant = this.getRestaurant();
-    if (!restaurant) return false;
-    const matchId = String(restaurant.adminId || '').trim().toLowerCase() === String(adminId).trim().toLowerCase();
-    const matchPin = String(restaurant.adminPin || '').trim() === String(pin).trim();
-    if (matchId && matchPin) {
+    const currentId = String(restaurant.adminId || 'admin').trim().toLowerCase();
+    const currentPin = String(restaurant.adminPin || '1234').trim();
+
+    const inputId = String(adminId || '').trim().toLowerCase();
+    const inputPin = String(pin || '').trim();
+
+    if (inputId === currentId && inputPin === currentPin) {
       sessionStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, JSON.stringify({
         authenticated: true,
         loginTime: Date.now()
@@ -356,28 +384,14 @@ class AppStore {
     sessionStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
   }
 
-  // --- SECURE CLOUD FIREBASE CONFIG RESOLUTION ---
+  // --- CLOUD FIREBASE SYNC (stockora-77) ---
   getFirebaseConfig() {
-    // 1. Check user-configured config in localStorage (set securely via Admin Settings)
     try {
-      const saved = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && parsed.apiKey && parsed.apiKey !== 'YOUR_FIREBASE_API_KEY') {
-          return parsed;
-        }
-      }
-    } catch (e) {
-      console.warn('Storage config read error:', e);
+      const raw = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
+      return raw ? JSON.parse(raw) : DEFAULT_FIREBASE_CONFIG;
+    } catch {
+      return DEFAULT_FIREBASE_CONFIG;
     }
-
-    // 2. Check window.FIREBASE_CONFIG loaded from local gitignored 'firebase-config.js'
-    if (window.FIREBASE_CONFIG && window.FIREBASE_CONFIG.apiKey && window.FIREBASE_CONFIG.apiKey !== 'YOUR_FIREBASE_API_KEY') {
-      return window.FIREBASE_CONFIG;
-    }
-
-    // 3. Fallback: No cloud config set (runs offline/local storage safely)
-    return null;
   }
 
   saveFirebaseConfig(config) {
@@ -393,24 +407,39 @@ class AppStore {
     }
 
     try {
-      // Dynamic import of official Firebase SDK modules
-      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-      const { getFirestore, doc, setDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+      const { initializeApp, getApps, getApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+      const { getFirestore, doc, setDoc, onSnapshot, getDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
-      this.firebaseApp = initializeApp(config);
+      this.firebaseApp = getApps().length === 0 ? initializeApp(config) : getApp();
       this.firestore = getFirestore(this.firebaseApp);
       this.isCloudConnected = true;
-      console.log('Firebase Cloud Firestore Connected to project:', config.projectId);
 
-      const restaurantId = config.projectId || 'main_restaurant';
+      const restaurantId = config.projectId || 'stockora-77';
 
-      // 1. Real-Time Listener for Restaurant Info & Admin Credentials
+      // 1. Check & Sync Restaurant Profile from Cloud
       const infoRef = doc(this.firestore, 'restaurants', restaurantId, 'data', 'info');
+      try {
+        const infoSnap = await getDoc(infoRef);
+        if (infoSnap.exists()) {
+          const cloudInfo = infoSnap.data();
+          if (cloudInfo && cloudInfo.name) {
+            localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify({ ...DEFAULT_RESTAURANT_INFO, ...cloudInfo }));
+            this.notify('restaurant', cloudInfo);
+          }
+        } else {
+          // Seed cloud database with the restaurant info so it's permanently stored on cloud
+          await setDoc(infoRef, DEFAULT_RESTAURANT_INFO, { merge: true });
+        }
+      } catch (err) {
+        console.warn('Info sync fetch notice:', err.message);
+      }
+
+      // Real-time listener for restaurant info / credentials updates
       onSnapshot(infoRef, (docSnap) => {
         if (docSnap.exists()) {
           const cloudInfo = docSnap.data();
-          if (cloudInfo && cloudInfo.isSetupDone) {
-            localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify(cloudInfo));
+          if (cloudInfo && cloudInfo.name) {
+            localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify({ ...DEFAULT_RESTAURANT_INFO, ...cloudInfo }));
             this.notify('restaurant', cloudInfo);
           }
         }
@@ -428,6 +457,21 @@ class AppStore {
 
       // 3. Real-Time Listener for Menu Items Across ALL Devices
       const menuRef = doc(this.firestore, 'restaurants', restaurantId, 'data', 'menu');
+      try {
+        const menuSnap = await getDoc(menuRef);
+        if (menuSnap.exists()) {
+          const cloudMenu = menuSnap.data().items || [];
+          if (cloudMenu.length > 0) {
+            localStorage.setItem(STORAGE_KEYS.MENU, JSON.stringify(cloudMenu));
+            this.notify('menu', cloudMenu);
+          }
+        } else {
+          await setDoc(menuRef, { items: DEFAULT_MENU_ITEMS, updatedAt: Date.now() }, { merge: true });
+        }
+      } catch (err) {
+        console.warn('Menu sync fetch notice:', err.message);
+      }
+
       onSnapshot(menuRef, (docSnap) => {
         if (docSnap.exists()) {
           const cloudMenu = docSnap.data().items || [];
@@ -448,8 +492,7 @@ class AppStore {
     if (!this.isCloudConnected || !this.firestore) return;
     try {
       const config = this.getFirebaseConfig();
-      if (!config) return;
-      const restaurantId = config.projectId || 'main_restaurant';
+      const restaurantId = config.projectId || 'stockora-77';
       const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
       if (type === 'orders') {
