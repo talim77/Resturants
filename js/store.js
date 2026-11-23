@@ -1,6 +1,7 @@
 /**
  * Restaurant App - Unified Store & Cloud Sync Layer
- * Supports LocalStorage fallback + Firebase Cloud Firestore real-time sync.
+ * Integrated with user's Firebase Project: stockora-77
+ * Full real-time synchronization for Multi-Device ordering and Admin Management.
  */
 
 const STORAGE_KEYS = {
@@ -9,6 +10,16 @@ const STORAGE_KEYS = {
   ORDERS: 'resturant_orders',
   FIREBASE_CONFIG: 'resturant_firebase_config',
   ADMIN_SESSION: 'resturant_admin_session'
+};
+
+// User's Pre-Configured Cloud Database (stockora-77)
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCP2ATZCPVHJJDgtBpu89Ypwkep0Q-oSaM",
+  authDomain: "stockora-77.firebaseapp.com",
+  projectId: "stockora-77",
+  storageBucket: "stockora-77.firebasestorage.app",
+  messagingSenderId: "275521628563",
+  appId: "1:275521628563:web:restaurant"
 };
 
 // Initial Sample Menu for First-Time Setup
@@ -120,15 +131,14 @@ class AppStore {
     this.subscribers = {
       restaurant: [],
       menu: [],
-      orders: [],
-      cart: []
+      orders: []
     };
 
     this.firebaseApp = null;
     this.firestore = null;
     this.isCloudConnected = false;
 
-    // Cross-tab real-time listener (when customer orders in one tab, admin gets it immediately in another tab)
+    // Cross-tab real-time listener (when tabs change on same device)
     window.addEventListener('storage', (e) => {
       if (e.key === STORAGE_KEYS.ORDERS) {
         this.notify('orders', this.getOrders());
@@ -139,7 +149,7 @@ class AppStore {
       }
     });
 
-    // Attempt cloud connection if config saved
+    // Auto initialize Cloud Firebase on launch
     this.initCloud();
   }
 
@@ -166,7 +176,7 @@ class AppStore {
     }
   }
 
-  // --- RESTAURANT INFO ---
+  // --- RESTAURANT INFO & CREDENTIALS ---
   getRestaurant() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.RESTAURANT);
@@ -188,7 +198,7 @@ class AppStore {
     localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify(updated));
     this.notify('restaurant', updated);
 
-    // Sync to cloud if available
+    // Sync credentials and restaurant profile to Cloud Firestore
     this.syncToCloud('restaurant', updated);
     return updated;
   }
@@ -304,7 +314,7 @@ class AppStore {
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
     this.notify('orders', orders);
 
-    // Save to Cloud
+    // Sync to Cloud Firestore instantly
     this.syncToCloud('orders', orders);
 
     return newOrder;
@@ -355,13 +365,13 @@ class AppStore {
     sessionStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
   }
 
-  // --- CLOUD FIREBASE SYNC (OPTIONAL / SECURE) ---
+  // --- CLOUD FIREBASE SYNC (stockora-77) ---
   getFirebaseConfig() {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.FIREBASE_CONFIG);
-      return raw ? JSON.parse(raw) : null;
+      return raw ? JSON.parse(raw) : DEFAULT_FIREBASE_CONFIG;
     } catch {
-      return null;
+      return DEFAULT_FIREBASE_CONFIG;
     }
   }
 
@@ -378,29 +388,41 @@ class AppStore {
     }
 
     try {
-      // Dynamic import of Firebase from CDN
+      // Dynamic import of official Firebase SDK modules
       const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-      const { getFirestore, doc, setDoc, onSnapshot } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+      const { getFirestore, doc, setDoc, onSnapshot, getDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
 
       this.firebaseApp = initializeApp(config);
       this.firestore = getFirestore(this.firebaseApp);
       this.isCloudConnected = true;
-      console.log('Firebase Cloud Database Connected!');
+      console.log('Firebase Cloud Firestore Connected to project:', config.projectId);
 
-      // Listen to Orders in Real-Time
-      const ordersRef = doc(this.firestore, 'restaurants', config.projectId, 'data', 'orders');
+      const restaurantId = config.projectId || 'main_restaurant';
+
+      // 1. Real-Time Listener for Restaurant Info & Admin Credentials
+      const infoRef = doc(this.firestore, 'restaurants', restaurantId, 'data', 'info');
+      onSnapshot(infoRef, (docSnap) => {
+        if (docSnap.exists()) {
+          const cloudInfo = docSnap.data();
+          if (cloudInfo && cloudInfo.isSetupDone) {
+            localStorage.setItem(STORAGE_KEYS.RESTAURANT, JSON.stringify(cloudInfo));
+            this.notify('restaurant', cloudInfo);
+          }
+        }
+      }, (err) => console.warn('Info listener notice:', err.message));
+
+      // 2. Real-Time Listener for Incoming Orders Across ALL Devices
+      const ordersRef = doc(this.firestore, 'restaurants', restaurantId, 'data', 'orders');
       onSnapshot(ordersRef, (docSnap) => {
         if (docSnap.exists()) {
           const cloudOrders = docSnap.data().list || [];
-          if (cloudOrders.length > 0) {
-            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(cloudOrders));
-            this.notify('orders', cloudOrders);
-          }
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(cloudOrders));
+          this.notify('orders', cloudOrders);
         }
-      });
+      }, (err) => console.warn('Orders listener notice:', err.message));
 
-      // Listen to Menu in Real-Time
-      const menuRef = doc(this.firestore, 'restaurants', config.projectId, 'data', 'menu');
+      // 3. Real-Time Listener for Menu Items Across ALL Devices
+      const menuRef = doc(this.firestore, 'restaurants', restaurantId, 'data', 'menu');
       onSnapshot(menuRef, (docSnap) => {
         if (docSnap.exists()) {
           const cloudMenu = docSnap.data().items || [];
@@ -409,9 +431,10 @@ class AppStore {
             this.notify('menu', cloudMenu);
           }
         }
-      });
+      }, (err) => console.warn('Menu listener notice:', err.message));
+
     } catch (err) {
-      console.warn('Could not initialize Firebase cloud sync (using persistent LocalStorage fallback):', err);
+      console.warn('Firebase Cloud setup notice (using local storage fallback):', err.message);
       this.isCloudConnected = false;
     }
   }
@@ -420,16 +443,18 @@ class AppStore {
     if (!this.isCloudConnected || !this.firestore) return;
     try {
       const config = this.getFirebaseConfig();
+      const restaurantId = config.projectId || 'main_restaurant';
       const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+
       if (type === 'orders') {
-        await setDoc(doc(this.firestore, 'restaurants', config.projectId, 'data', 'orders'), { list: data }, { merge: true });
+        await setDoc(doc(this.firestore, 'restaurants', restaurantId, 'data', 'orders'), { list: data, updatedAt: Date.now() }, { merge: true });
       } else if (type === 'menu') {
-        await setDoc(doc(this.firestore, 'restaurants', config.projectId, 'data', 'menu'), { items: data }, { merge: true });
+        await setDoc(doc(this.firestore, 'restaurants', restaurantId, 'data', 'menu'), { items: data, updatedAt: Date.now() }, { merge: true });
       } else if (type === 'restaurant') {
-        await setDoc(doc(this.firestore, 'restaurants', config.projectId, 'data', 'info'), data, { merge: true });
+        await setDoc(doc(this.firestore, 'restaurants', restaurantId, 'data', 'info'), data, { merge: true });
       }
     } catch (e) {
-      console.error('Error syncing to Firebase cloud:', e);
+      console.warn('Sync to cloud notice:', e.message);
     }
   }
 
@@ -451,6 +476,7 @@ class AppStore {
       if (data.orders) {
         localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data.orders));
         this.notify('orders', data.orders);
+        this.syncToCloud('orders', data.orders);
       }
       return true;
     } catch (e) {

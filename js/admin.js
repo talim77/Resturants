@@ -1,6 +1,7 @@
 /**
- * Admin Panel Logic - Admin.js
- * Handles: Simple PIN/ID login, Live Orders management, Menu CRUD, and Restaurant Settings.
+ * Admin Panel Logic - Admin.js (Phone & Desktop Responsive + PWA)
+ * Handles: PIN/ID login, Real-time Order feed with Sound & Vibration,
+ * Menu CRUD, Cloud Credentials update, and PWA installation.
  */
 
 class AdminController {
@@ -11,6 +12,8 @@ class AdminController {
     this.editingItemId = null;
     this.soundEnabled = true;
     this.lastOrderCount = 0;
+    this.deferredPrompt = null;
+    this.audioCtx = null;
 
     this.init();
   }
@@ -30,34 +33,94 @@ class AdminController {
     });
 
     this.setupEventListeners();
+    this.setupPWAInstall();
   }
 
-  // --- AUDIO ALERT VIA WEB AUDIO API ---
+  // --- PWA INSTALLATION PROMPT ---
+  setupPWAInstall() {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      this.deferredPrompt = e;
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) {
+        banner.classList.remove('hidden');
+        banner.classList.add('flex');
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      const banner = document.getElementById('pwa-install-banner');
+      if (banner) banner.classList.add('hidden');
+      this.deferredPrompt = null;
+      console.log('Resto Admin PWA Installed!');
+    });
+  }
+
+  installPWA() {
+    if (this.deferredPrompt) {
+      this.deferredPrompt.prompt();
+      this.deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted the PWA install prompt');
+        }
+        this.deferredPrompt = null;
+        const banner = document.getElementById('pwa-install-banner');
+        if (banner) banner.classList.add('hidden');
+      });
+    } else {
+      alert('Apne browser ke Menu (⋮) me jakar "Add to Home Screen" ya "Install App" par click karein.');
+    }
+  }
+
+  // --- AUDIO ALERT VIA WEB AUDIO API + VIBRATION ---
+  getAudioContext() {
+    if (!this.audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        this.audioCtx = new AudioContext();
+      }
+    }
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
+    }
+    return this.audioCtx;
+  }
+
   playNotificationChime() {
+    // 1. Phone Vibration
+    if ('vibrate' in navigator) {
+      try {
+        navigator.vibrate([300, 150, 300, 150, 400]);
+      } catch (e) {
+        console.warn('Vibrate not permitted:', e);
+      }
+    }
+
+    // 2. Audio Chime
     if (!this.soundEnabled) return;
     try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1); // A5
-      osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.2); // D6
-      
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.6);
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+
+      const playTone = (freq, start, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + start);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + duration);
+      };
+
+      // Melodic 3-tone chime (G5, B5, E6)
+      playTone(783.99, 0, 0.25);
+      playTone(987.77, 0.15, 0.25);
+      playTone(1318.51, 0.3, 0.5);
     } catch (e) {
-      console.warn('Audio chime error:', e);
+      console.warn('Audio chime notice:', e);
     }
   }
 
@@ -66,12 +129,14 @@ class AdminController {
     const btn = document.getElementById('toggle-sound-btn');
     if (btn) {
       btn.innerHTML = this.soundEnabled 
-        ? `🔔 <span class="hidden sm:inline">Sound: ON</span>` 
-        : `🔕 <span class="hidden sm:inline">Sound: OFF</span>`;
+        ? `<span>🔔</span> <span class="hidden sm:inline">Sound: ON</span>` 
+        : `<span>🔕</span> <span class="hidden sm:inline">Sound: OFF</span>`;
       btn.className = this.soundEnabled
-        ? 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 transition'
-        : 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-500 border border-stone-200 transition';
+        ? 'px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 transition flex items-center gap-1'
+        : 'px-2.5 py-1.5 text-[11px] font-bold rounded-lg bg-stone-100 text-stone-500 border border-stone-200 transition flex items-center gap-1';
     }
+    // Unlock audio context on toggle click
+    this.getAudioContext();
   }
 
   // --- AUTHENTICATION ---
@@ -86,6 +151,7 @@ class AdminController {
     } else {
       if (loginCard) loginCard.classList.add('hidden');
       if (dashboardView) dashboardView.classList.remove('hidden');
+      this.getAudioContext(); // Unlock audio context
       this.renderHeader();
       this.updateStats();
       this.renderOrders();
@@ -118,7 +184,7 @@ class AdminController {
       this.checkAuth();
     } else {
       if (errorMsg) {
-        errorMsg.textContent = 'Galat Admin ID ya PIN! Kripya sahi details dalein.';
+        errorMsg.textContent = 'Galat Admin ID ya PIN! Kripya sahi credentials dalein.';
         errorMsg.classList.remove('hidden');
       }
       pinInput.value = '';
@@ -141,15 +207,14 @@ class AdminController {
       nameEl.textContent = res.name || 'Restaurant Admin';
     }
 
-    // Cloud connection status pill
     const cloudStatusEl = document.getElementById('cloud-sync-status-pill');
     if (cloudStatusEl) {
       if (store.isCloudConnected) {
-        cloudStatusEl.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1.5';
-        cloudStatusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Synced`;
+        cloudStatusEl.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 flex items-center gap-1';
+        cloudStatusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Cloud Live`;
       } else {
-        cloudStatusEl.className = 'px-2.5 py-1 text-xs font-bold rounded-full bg-stone-100 text-stone-600 flex items-center gap-1.5';
-        cloudStatusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-stone-400"></span> Local Storage (Offline)`;
+        cloudStatusEl.className = 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-stone-100 text-stone-600 flex items-center gap-1';
+        cloudStatusEl.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span> Local Sync`;
       }
     }
   }
@@ -183,12 +248,16 @@ class AdminController {
     if (statMenuItems) statMenuItems.textContent = menu.length;
   }
 
-  // --- TABS NAVIGATION ---
+  // --- TABS NAVIGATION (Desktop + Mobile Phone Bottom Bar) ---
   switchTab(tabName) {
     this.activeTab = tabName;
+
+    // Desktop Tabs
     ['orders', 'menu', 'settings'].forEach(tab => {
       const view = document.getElementById(`tab-view-${tab}`);
       const btn = document.getElementById(`tab-btn-${tab}`);
+      const mobBtn = document.getElementById(`mob-btn-${tab}`);
+
       if (view) {
         if (tab === tabName) {
           view.classList.remove('hidden');
@@ -198,9 +267,17 @@ class AdminController {
       }
       if (btn) {
         if (tab === tabName) {
-          btn.className = 'px-4 py-2 text-sm font-bold rounded-xl bg-orange-600 text-white shadow-sm transition';
+          btn.className = 'px-4 py-2 text-xs font-bold rounded-xl bg-orange-600 text-white shadow-sm transition';
         } else {
-          btn.className = 'px-4 py-2 text-sm font-semibold rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition';
+          btn.className = 'px-4 py-2 text-xs font-semibold rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition';
+        }
+      }
+      // Mobile Bottom Bar
+      if (mobBtn) {
+        if (tab === tabName) {
+          mobBtn.className = 'flex flex-col items-center justify-center flex-1 h-full text-orange-600 font-bold transition';
+        } else {
+          mobBtn.className = 'flex flex-col items-center justify-center flex-1 h-full text-stone-500 font-medium transition';
         }
       }
     });
@@ -208,6 +285,7 @@ class AdminController {
     if (tabName === 'orders') this.renderOrders();
     if (tabName === 'menu') this.renderMenuTable();
     if (tabName === 'settings') this.populateSettingsForm();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // --- ORDERS TAB LOGIC ---
@@ -227,9 +305,9 @@ class AdminController {
     document.querySelectorAll('.order-filter-btn').forEach(btn => {
       const f = btn.getAttribute('data-filter');
       if (f === filter) {
-        btn.className = 'order-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-stone-900 text-white transition';
+        btn.className = 'order-filter-btn px-3 py-1.5 text-xs font-bold rounded-lg bg-stone-900 text-white transition whitespace-nowrap';
       } else {
-        btn.className = 'order-filter-btn px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition';
+        btn.className = 'order-filter-btn px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-stone-100 text-stone-600 hover:bg-stone-200 transition whitespace-nowrap';
       }
     });
     this.renderOrders();
@@ -241,14 +319,12 @@ class AdminController {
 
     let orders = store.getOrders();
 
-    // Apply Filter
     if (this.orderFilter === 'active') {
       orders = orders.filter(o => o.status === 'pending' || o.status === 'preparing');
     } else if (this.orderFilter !== 'all') {
       orders = orders.filter(o => o.status === this.orderFilter);
     }
 
-    // Apply Search
     if (this.searchOrderQuery.trim()) {
       const q = this.searchOrderQuery.toLowerCase();
       orders = orders.filter(o => 
@@ -261,10 +337,10 @@ class AdminController {
 
     if (orders.length === 0) {
       listContainer.innerHTML = `
-        <div class="text-center py-12 px-4 bg-white rounded-2xl border border-stone-200">
-          <p class="text-4xl mb-2">📋</p>
-          <h4 class="text-base font-bold text-stone-800">Koi order nahi mila</h4>
-          <p class="text-xs text-stone-500 mt-1">Naye orders yahan automatically real-time me appear honge.</p>
+        <div class="text-center py-10 px-4 bg-white rounded-2xl border border-stone-200">
+          <p class="text-3xl mb-1">📋</p>
+          <h4 class="text-sm font-bold text-stone-800">Koi order nahi mila</h4>
+          <p class="text-[11px] text-stone-400 mt-0.5">Naye orders yahan real-time sound ke sath show honge.</p>
         </div>
       `;
       return;
@@ -275,15 +351,15 @@ class AdminController {
       const statusBadge = this.getStatusBadge(order.status);
 
       return `
-        <div class="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition">
+        <div class="bg-white rounded-2xl border border-stone-200 p-3.5 sm:p-4 shadow-sm hover:shadow-md transition">
           <!-- Top Row: Order ID, Table, Time, Status -->
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3 mb-3">
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-sm text-stone-900">${order.id}</span>
-              <span class="px-2.5 py-1 bg-orange-100 text-orange-900 text-xs font-black rounded-lg border border-orange-200">
+          <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-stone-100 pb-2.5 mb-2.5">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <span class="font-extrabold text-xs sm:text-sm text-stone-900">${order.id}</span>
+              <span class="px-2 py-0.5 bg-orange-100 text-orange-900 text-[11px] font-black rounded-lg border border-orange-200">
                 TABLE ${order.tableNo}
               </span>
-              <span class="text-xs text-stone-400 font-medium">${timeAgo}</span>
+              <span class="text-[10px] text-stone-400 font-medium">${timeAgo}</span>
             </div>
 
             <div>
@@ -292,72 +368,72 @@ class AdminController {
           </div>
 
           <!-- Customer Info & Cash Badge -->
-          <div class="flex flex-wrap items-center justify-between text-xs text-stone-600 gap-2 mb-3 bg-stone-50 px-3 py-2 rounded-xl">
-            <div class="flex items-center gap-3">
-              <span>👤 <strong>${order.customerName || 'Walk-in Guest'}</strong></span>
+          <div class="flex flex-wrap items-center justify-between text-[11px] text-stone-600 gap-1.5 mb-2.5 bg-stone-50 px-2.5 py-1.5 rounded-xl">
+            <div class="flex items-center gap-2">
+              <span>👤 <strong>${order.customerName || 'Walk-in'}</strong></span>
               <span>📞 <a href="tel:${order.customerPhone}" class="text-orange-600 hover:underline font-mono font-bold">${order.customerPhone}</a></span>
             </div>
             <div>
-              <span class="inline-flex items-center gap-1 font-bold text-stone-800 bg-amber-100/70 border border-amber-200 text-[11px] px-2 py-0.5 rounded">
-                💵 Cash on Table / Counter
+              <span class="inline-flex items-center gap-1 font-bold text-stone-800 bg-amber-100/70 border border-amber-200 text-[10px] px-1.5 py-0.5 rounded">
+                💵 Cash on Table
               </span>
             </div>
           </div>
 
           <!-- Items Ordered List -->
-          <div class="space-y-1 mb-4">
+          <div class="space-y-1 mb-3">
             ${(order.items || []).map(item => `
-              <div class="flex justify-between items-center text-xs text-stone-700 py-1 border-b border-stone-50 last:border-0">
-                <div class="flex items-center gap-2">
-                  <span class="${item.isVeg ? 'veg-badge' : 'non-veg-badge'}"></span>
-                  <span class="font-medium text-stone-800">${item.name}</span>
-                  <span class="text-stone-400 font-bold">&times; ${item.quantity}</span>
+              <div class="flex justify-between items-center text-xs text-stone-700 py-0.5 border-b border-stone-50 last:border-0">
+                <div class="flex items-center gap-1.5 truncate pr-2">
+                  <span class="${item.isVeg ? 'veg-badge' : 'non-veg-badge'} flex-shrink-0"></span>
+                  <span class="font-medium text-stone-800 truncate">${item.name}</span>
+                  <span class="text-stone-400 font-bold flex-shrink-0">&times; ${item.quantity}</span>
                 </div>
-                <span class="font-mono font-bold text-stone-900">₹${item.price * item.quantity}</span>
+                <span class="font-mono font-bold text-stone-900 flex-shrink-0">₹${item.price * item.quantity}</span>
               </div>
             `).join('')}
           </div>
 
-          <!-- Total Bill & Action Buttons -->
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-stone-100">
+          <!-- Total Bill & Action Buttons (Touch Friendly) -->
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-stone-100">
             <div>
-              <span class="text-[11px] text-stone-400 uppercase tracking-wider font-semibold">Total Bill</span>
-              <p class="text-lg font-black text-stone-900 leading-none">₹${order.totalAmount}</p>
+              <span class="text-[9px] text-stone-400 uppercase tracking-wider font-semibold">Total Bill</span>
+              <p class="text-base font-black text-stone-900 leading-none">₹${order.totalAmount}</p>
             </div>
 
-            <!-- Workflow Status Buttons -->
-            <div class="flex items-center gap-2 flex-wrap">
+            <!-- Workflow Status Action Buttons -->
+            <div class="flex items-center gap-1.5 flex-wrap">
               ${order.status === 'pending' ? `
                 <button 
                   onclick="admin.updateStatus('${order.id}', 'preparing')"
-                  class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1"
                 >
-                  <span>🍳 Kitchen Start (Preparing)</span>
+                  <span>🍳 Cook (In Kitchen)</span>
                 </button>
               ` : ''}
 
               ${order.status === 'preparing' ? `
                 <button 
                   onclick="admin.updateStatus('${order.id}', 'ready')"
-                  class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1"
                 >
-                  <span>🍽️ Ready / Serve to Table</span>
+                  <span>🍽️ Serve to Table</span>
                 </button>
               ` : ''}
 
               ${order.status === 'ready' ? `
                 <button 
                   onclick="admin.updateStatus('${order.id}', 'completed')"
-                  class="px-3.5 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl shadow-sm transition active:scale-95 flex items-center gap-1.5"
+                  class="px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white text-[11px] font-bold rounded-xl shadow-xs transition active:scale-95 flex items-center gap-1"
                 >
-                  <span>✅ Cash Collected & Done</span>
+                  <span>✅ Cash Collected</span>
                 </button>
               ` : ''}
 
               ${order.status !== 'completed' && order.status !== 'cancelled' ? `
                 <button 
                   onclick="admin.cancelOrderPrompt('${order.id}')"
-                  class="px-2.5 py-1.5 text-stone-400 hover:text-red-600 text-xs font-medium rounded-lg hover:bg-red-50 transition"
+                  class="px-2 py-1.5 text-stone-400 hover:text-red-600 text-[11px] font-medium rounded-lg hover:bg-red-50 transition"
                   title="Cancel Order"
                 >
                   Cancel
@@ -366,10 +442,10 @@ class AdminController {
 
               <button 
                 onclick="admin.printReceipt('${order.id}')"
-                class="px-2.5 py-1.5 text-stone-600 hover:text-stone-900 text-xs font-medium rounded-lg bg-stone-100 hover:bg-stone-200 transition"
+                class="px-2 py-1.5 text-stone-600 hover:text-stone-900 text-[11px] font-medium rounded-lg bg-stone-100 hover:bg-stone-200 transition"
                 title="Print Receipt"
               >
-                🖨️ Print
+                🖨️
               </button>
             </div>
           </div>
@@ -381,27 +457,27 @@ class AdminController {
   getStatusBadge(status) {
     switch (status) {
       case 'pending':
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> New / Pending
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span> New
         </span>`;
       case 'preparing':
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-          🍳 In Kitchen
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+          🍳 Cooking
         </span>`;
       case 'ready':
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
           🍽️ Ready / Served
         </span>`;
       case 'completed':
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-stone-100 text-stone-700">
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-stone-100 text-stone-700">
           ✓ Completed
         </span>`;
       case 'cancelled':
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700">
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-100 text-red-700">
           ✕ Cancelled
         </span>`;
       default:
-        return `<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-stone-100 text-stone-700">${status}</span>`;
+        return `<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-stone-100 text-stone-700">${status}</span>`;
     }
   }
 
@@ -441,12 +517,12 @@ class AdminController {
         <head>
           <title>Receipt - ${order.id}</title>
           <style>
-            body { font-family: monospace; padding: 20px; font-size: 13px; color: #000; }
+            body { font-family: monospace; padding: 15px; font-size: 13px; color: #000; }
             .center { text-align: center; }
-            .dashed { border-top: 1px dashed #000; margin: 10px 0; }
+            .dashed { border-top: 1px dashed #000; margin: 8px 0; }
             .flex { display: flex; justify-content: space-between; }
             .bold { font-weight: bold; }
-            .title { font-size: 18px; margin-bottom: 4px; }
+            .title { font-size: 16px; margin-bottom: 2px; }
           </style>
         </head>
         <body>
@@ -454,26 +530,26 @@ class AdminController {
             <div class="title bold">${res.name}</div>
             <div>${res.tagline || ''}</div>
             <div class="dashed"></div>
-            <div class="bold" style="font-size: 16px;">TABLE ${order.tableNo}</div>
+            <div class="bold" style="font-size: 15px;">TABLE ${order.tableNo}</div>
             <div>Order: ${order.id} | ${order.placedAtTime || ''}</div>
             <div>Cust: ${order.customerName || 'Walk-in'} (${order.customerPhone})</div>
           </div>
           <div class="dashed"></div>
           <div>
             ${order.items.map(i => `
-              <div class="flex" style="margin: 4px 0;">
+              <div class="flex" style="margin: 3px 0;">
                 <span>${i.name} x ${i.quantity}</span>
                 <span>₹${i.price * i.quantity}</span>
               </div>
             `).join('')}
           </div>
           <div class="dashed"></div>
-          <div class="flex bold" style="font-size: 15px;">
+          <div class="flex bold" style="font-size: 14px;">
             <span>TOTAL (CASH):</span>
             <span>₹${order.totalAmount}</span>
           </div>
           <div class="dashed"></div>
-          <div class="center" style="font-size: 11px;">
+          <div class="center" style="font-size: 10px;">
             Payment: CASH ON TABLE<br>
             Dhanyawad! Please Visit Again!
           </div>
@@ -497,10 +573,10 @@ class AdminController {
 
     if (menu.length === 0) {
       container.innerHTML = `
-        <div class="text-center py-12 px-4 bg-white rounded-2xl border border-stone-200">
-          <p class="text-3xl mb-2">🍽️</p>
-          <h4 class="text-base font-bold text-stone-800">Menu Khali Hai</h4>
-          <p class="text-xs text-stone-500 mt-1 mb-4">Naya item add karein ya demo menu load karein.</p>
+        <div class="text-center py-10 px-4 bg-white rounded-2xl border border-stone-200">
+          <p class="text-3xl mb-1">🍽️</p>
+          <h4 class="text-sm font-bold text-stone-800">Menu Khali Hai</h4>
+          <p class="text-xs text-stone-500 mt-0.5 mb-3">Naya item add karein.</p>
           <button onclick="admin.openItemModal()" class="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow">
             + Naya Item Add Karein
           </button>
@@ -514,64 +590,64 @@ class AdminController {
         <table class="w-full text-left text-xs text-stone-700">
           <thead class="bg-stone-50 text-stone-400 uppercase text-[10px] tracking-wider border-b border-stone-200">
             <tr>
-              <th class="px-4 py-3">Item Details</th>
-              <th class="px-3 py-3">Category</th>
-              <th class="px-3 py-3">Price</th>
-              <th class="px-3 py-3">Stock Status</th>
-              <th class="px-4 py-3 text-right">Actions</th>
+              <th class="px-3.5 py-2.5">Item</th>
+              <th class="px-2.5 py-2.5">Cat</th>
+              <th class="px-2.5 py-2.5">Price</th>
+              <th class="px-2.5 py-2.5">Stock</th>
+              <th class="px-3.5 py-2.5 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
             ${menu.map(item => `
               <tr class="hover:bg-stone-50/70 transition">
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
+                <td class="px-3.5 py-2.5">
+                  <div class="flex items-center gap-2.5">
                     <img 
                       src="${item.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'}" 
                       alt="${item.name}" 
-                      class="w-10 h-10 rounded-lg object-cover bg-stone-100 border border-stone-200"
+                      class="w-9 h-9 rounded-lg object-cover bg-stone-100 border border-stone-200 flex-shrink-0"
                       onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=150&q=80'"
                     />
-                    <div>
-                      <div class="flex items-center gap-1.5">
-                        <span class="${item.isVeg ? 'veg-badge' : 'non-veg-badge'}"></span>
-                        <span class="font-bold text-stone-900 text-sm">${item.name}</span>
+                    <div class="min-w-0">
+                      <div class="flex items-center gap-1">
+                        <span class="${item.isVeg ? 'veg-badge' : 'non-veg-badge'} flex-shrink-0"></span>
+                        <span class="font-bold text-stone-900 text-xs truncate">${item.name}</span>
                       </div>
-                      <p class="text-[11px] text-stone-400 line-clamp-1 max-w-xs">${item.description || ''}</p>
+                      <p class="text-[10px] text-stone-400 line-clamp-1 max-w-[140px] sm:max-w-xs">${item.description || ''}</p>
                     </div>
                   </div>
                 </td>
-                <td class="px-3 py-3 font-medium">
-                  <span class="bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full text-[11px]">
+                <td class="px-2.5 py-2.5 font-medium">
+                  <span class="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-full text-[10px]">
                     ${item.category}
                   </span>
                 </td>
-                <td class="px-3 py-3 font-extrabold text-stone-900 text-sm">
+                <td class="px-2.5 py-2.5 font-extrabold text-stone-900 text-xs">
                   ₹${item.price}
                 </td>
-                <td class="px-3 py-3">
+                <td class="px-2.5 py-2.5">
                   <button 
                     onclick="admin.toggleAvailability('${item.id}')"
-                    class="px-2.5 py-1 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+                    class="px-2 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1 ${
                       item.isAvailable !== false 
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                         : 'bg-red-50 text-red-700 border border-red-200'
                     }"
                   >
                     <span class="w-1.5 h-1.5 rounded-full ${item.isAvailable !== false ? 'bg-emerald-500' : 'bg-red-500'}"></span>
-                    ${item.isAvailable !== false ? 'In Stock' : 'Out of Stock'}
+                    ${item.isAvailable !== false ? 'In Stock' : 'Out'}
                   </button>
                 </td>
-                <td class="px-4 py-3 text-right space-x-2">
+                <td class="px-3.5 py-2.5 text-right space-x-1.5">
                   <button 
                     onclick="admin.editItem('${item.id}')"
-                    class="px-2.5 py-1.5 text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg font-semibold transition"
+                    class="px-2 py-1 text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded font-semibold text-[11px]"
                   >
                     Edit
                   </button>
                   <button 
                     onclick="admin.deleteItemPrompt('${item.id}', '${item.name.replace(/'/g, "\\'")}')"
-                    class="px-2.5 py-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg font-semibold transition"
+                    class="px-2 py-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded font-semibold text-[11px]"
                   >
                     Delete
                   </button>
@@ -682,7 +758,7 @@ class AdminController {
     }
   }
 
-  // --- SETTINGS TAB ---
+  // --- SETTINGS TAB: CREDENTIALS & CLOUD ---
   populateSettingsForm() {
     const res = store.getRestaurant();
     if (!res) return;
@@ -697,7 +773,6 @@ class AdminController {
     if (adminIdInput) adminIdInput.value = res.adminId || '';
     if (adminPinInput) adminPinInput.value = res.adminPin || '';
 
-    // Populate Firebase config if exists
     const fbConfig = store.getFirebaseConfig();
     const fbTextarea = document.getElementById('settings-firebase-config');
     if (fbTextarea && fbConfig) {
@@ -717,6 +792,7 @@ class AdminController {
       return;
     }
 
+    // Saves locally and syncs directly to Cloud Firestore (stockora-77)
     store.saveRestaurant({
       name,
       tagline,
@@ -724,7 +800,7 @@ class AdminController {
       adminPin
     });
 
-    alert('Settings successfully save ho gayi hain!');
+    alert('Admin User ID & PIN successfully updated to Cloud! Ab aap kisi bhi device se in credentials se login kar sakte hain.');
     this.renderHeader();
   }
 
@@ -733,15 +809,7 @@ class AdminController {
     if (!textarea) return;
     const val = textarea.value.trim();
 
-    if (!val) {
-      localStorage.removeItem(STORAGE_KEYS.FIREBASE_CONFIG);
-      alert('Cloud configuration remove kar di gayi hai (Offline LocalStorage active).');
-      this.renderHeader();
-      return;
-    }
-
     try {
-      // Parse JSON config
       const config = JSON.parse(val);
       if (!config.apiKey || !config.projectId) {
         alert('Invalid Firebase Config! Isme apiKey aur projectId hona zaroori hai.');
@@ -799,25 +867,21 @@ class AdminController {
 
   // --- SETUP EVENT LISTENERS ---
   setupEventListeners() {
-    // Admin login form
     const loginForm = document.getElementById('admin-login-form');
     if (loginForm) {
       loginForm.addEventListener('submit', (e) => this.handleLogin(e));
     }
 
-    // Item edit form
     const itemForm = document.getElementById('item-edit-form');
     if (itemForm) {
       itemForm.addEventListener('submit', (e) => this.saveItemForm(e));
     }
 
-    // Settings form
     const settingsForm = document.getElementById('restaurant-settings-form');
     if (settingsForm) {
       settingsForm.addEventListener('submit', (e) => this.saveSettingsForm(e));
     }
 
-    // Search order input
     const searchOrderInput = document.getElementById('search-orders-input');
     if (searchOrderInput) {
       searchOrderInput.addEventListener('input', (e) => {

@@ -2,9 +2,16 @@
 <html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title class="brand-name">Restaurant Menu & Ordering</title>
   
+  <!-- PWA Meta & Manifest -->
+  <meta name="theme-color" content="#ea580c" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -31,209 +38,192 @@
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="css/custom.css" />
 </head>
-<body class="bg-stone-50 text-stone-800 antialiased min-h-screen flex flex-col selection:bg-orange-100 selection:text-orange-900">
+<body class="bg-stone-900 text-stone-800 antialiased min-h-screen flex justify-center selection:bg-orange-100 selection:text-orange-900">
 
-  <!-- NAVBAR -->
-  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-200/80 transition-all">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      <!-- Brand Logo / Name -->
-      <a href="#welcome" class="flex items-center gap-2.5 group">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-orange-600 to-amber-500 flex items-center justify-center text-white text-xl shadow-md shadow-orange-500/20 group-hover:scale-105 transition">
+  <!-- ==================================================== -->
+  <!-- MOBILE-FIRST PHONE CONTAINER                         -->
+  <!-- On desktop: Centers as a sleek phone preview frame   -->
+  <!-- On mobile: Occupies 100% full-screen native mobile UI-->
+  <!-- ==================================================== -->
+  <div class="w-full max-w-md min-h-screen bg-stone-50 shadow-2xl relative flex flex-col overflow-x-hidden border-x border-stone-800/40">
+
+    <!-- MOBILE APP HEADER -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 px-4 h-14 flex items-center justify-between">
+      <!-- Brand Logo & Name -->
+      <a href="#welcome" class="flex items-center gap-2 group">
+        <div class="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center text-white text-base shadow-sm group-hover:scale-105 transition">
           🍽️
         </div>
-        <div>
-          <h1 class="brand-name text-lg sm:text-xl font-extrabold text-stone-900 tracking-tight leading-tight">
+        <div class="leading-tight">
+          <h1 class="brand-name text-sm font-extrabold text-stone-900 tracking-tight truncate max-w-[170px]">
             Apna Restaurant
           </h1>
-          <p class="brand-tagline text-[11px] text-stone-500 font-medium hidden sm:block leading-none">
-            Fresh Flavors & Authentic Hospitality
-          </p>
+          <span class="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+            Dine-In &bull; Table Service
+          </span>
         </div>
       </a>
 
-      <!-- Navigation & Action Links -->
-      <div class="flex items-center gap-3">
-        <a href="#menu" class="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-stone-700 hover:text-orange-600 transition">
-          <span>Menu</span>
-        </a>
-
-        <!-- Cart Button -->
+      <!-- Header Actions: Cart & Admin -->
+      <div class="flex items-center gap-2">
         <button 
           onclick="app.openCartDrawer()"
-          class="relative inline-flex items-center gap-2 px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold transition active:scale-95"
+          class="relative p-2 text-stone-700 hover:text-orange-600 hover:bg-stone-100 rounded-xl transition"
+          title="Open Cart"
         >
-          <span>🛒 Cart</span>
-          <span class="cart-count-badge bg-orange-600 text-white rounded-full px-1.5 py-0.5 text-[10px] font-black min-w-[18px] text-center">
+          <span class="text-lg">🛒</span>
+          <span class="cart-count-badge absolute -top-0.5 -right-0.5 bg-orange-600 text-white rounded-full px-1 text-[9px] font-black min-w-[16px] text-center border-2 border-white">
             0
           </span>
         </button>
 
-        <!-- Admin Login Link -->
+        <!-- Admin Portal Icon -->
         <a 
           href="admin.html" 
-          class="inline-flex items-center gap-1 px-3 py-2 text-xs font-semibold text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-xl transition"
+          class="p-2 text-stone-400 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition text-base"
           title="Restaurant Owner Portal"
         >
-          <span>🔒</span>
-          <span class="hidden md:inline">Admin</span>
+          🔒
         </a>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <main class="flex-1">
+    <!-- MAIN SCROLLABLE CONTENT -->
+    <main class="flex-1 flex flex-col pb-20">
 
-    <!-- ========================================== -->
-    <!-- VIEW 1: WELCOME / LANDING PAGE (#welcome) -->
-    <!-- ========================================== -->
-    <section id="welcome-section" class="relative overflow-hidden">
-      <!-- Hero Banner -->
-      <div class="relative bg-stone-900 text-white py-16 sm:py-24 px-4 sm:px-6">
-        <!-- Background Image with Overlay -->
-        <div class="absolute inset-0 z-0">
+      <!-- ========================================== -->
+      <!-- VIEW 1: WELCOME SCREEN (#welcome)          -->
+      <!-- ========================================== -->
+      <section id="welcome-section" class="flex-1 flex flex-col">
+        <!-- Hero Card -->
+        <div class="relative bg-stone-900 text-white px-5 pt-10 pb-8 overflow-hidden rounded-b-3xl shadow-md">
+          <!-- Background Food Image -->
           <img 
-            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1600&q=80" 
-            alt="Restaurant Ambiance" 
-            class="w-full h-full object-cover opacity-25"
+            src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80" 
+            alt="Food Banner" 
+            class="absolute inset-0 w-full h-full object-cover opacity-20"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-900/80 to-transparent"></div>
-        </div>
 
-        <div class="relative z-10 max-w-4xl mx-auto text-center">
-          <!-- Welcome Pill -->
-          <div class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-orange-600/30 border border-orange-500/40 text-orange-300 text-xs font-bold uppercase tracking-wider mb-6">
-            <span>✨ Welcome to Delicious Dining</span>
-          </div>
+          <div class="relative z-10 text-center">
+            <span class="inline-block px-3 py-1 rounded-full bg-orange-500/20 border border-orange-400/30 text-orange-400 text-[11px] font-bold tracking-wider uppercase mb-3">
+              ✨ Welcome to Great Taste
+            </span>
 
-          <!-- Restaurant Name -->
-          <h1 class="brand-name font-serif-heading text-4xl sm:text-6xl font-bold tracking-tight mb-4 text-white leading-tight">
-            Apna Restaurant
-          </h1>
+            <h2 class="brand-name font-serif-heading text-3xl font-bold text-white mb-2 leading-tight">
+              Apna Restaurant
+            </h2>
 
-          <!-- Tagline -->
-          <p class="brand-tagline text-base sm:text-xl text-stone-300 max-w-2xl mx-auto mb-8 font-light leading-relaxed">
-            Authentic taste, freshly prepared and served right to your table.
-          </p>
+            <p class="brand-tagline text-xs text-stone-300 max-w-xs mx-auto mb-6 leading-relaxed font-light">
+              Freshly prepared food crafted with love, delivered straight to your table.
+            </p>
 
-          <!-- Primary Call to Action -->
-          <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <!-- Primary Phone CTA -->
             <a 
               href="#menu" 
-              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-base rounded-2xl shadow-xl shadow-orange-600/30 transform hover:-translate-y-0.5 transition duration-200 active:scale-95"
+              class="w-full inline-flex items-center justify-center gap-2 py-3.5 px-6 bg-orange-600 hover:bg-orange-500 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-orange-600/40 active:scale-98 transition"
             >
               <span>View Menu & Order</span>
-              <span class="text-xl">🍽️</span>
+              <span class="text-base">&rarr;</span>
+            </a>
+
+            <!-- Quick Badges Grid -->
+            <div class="grid grid-cols-3 gap-2 mt-6 pt-4 border-t border-white/10 text-center">
+              <div class="p-2 bg-white/5 rounded-xl border border-white/5">
+                <span class="text-lg">🪑</span>
+                <p class="text-[10px] font-bold text-white mt-0.5">Table Dine-In</p>
+              </div>
+
+              <div class="p-2 bg-white/5 rounded-xl border border-white/5">
+                <span class="text-lg">💵</span>
+                <p class="text-[10px] font-bold text-white mt-0.5">Cash Only</p>
+              </div>
+
+              <div class="p-2 bg-white/5 rounded-xl border border-white/5">
+                <span class="text-lg">⏱️</span>
+                <p class="text-[10px] font-bold text-white mt-0.5">5-Min Fast</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- How It Works (Mobile Steps) -->
+        <div class="p-5 flex-1">
+          <h3 class="text-xs font-bold text-stone-400 uppercase tracking-wider mb-3 text-center">
+            How It Works (Order in 3 Steps)
+          </h3>
+
+          <div class="space-y-2.5">
+            <div class="flex items-center gap-3 p-3 bg-white rounded-2xl border border-stone-200/80 shadow-2xs">
+              <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center text-xs flex-shrink-0">
+                1
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-stone-900">Choose Food</h4>
+                <p class="text-[11px] text-stone-500">Browse categories & tap ADD.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-3 bg-white rounded-2xl border border-stone-200/80 shadow-2xs">
+              <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center text-xs flex-shrink-0">
+                2
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-stone-900">Enter Table No. & Mobile</h4>
+                <p class="text-[11px] text-stone-500">Provide Table No. and tap Place Order.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-3 p-3 bg-white rounded-2xl border border-stone-200/80 shadow-2xs">
+              <div class="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 font-extrabold flex items-center justify-center text-xs flex-shrink-0">
+                3
+              </div>
+              <div>
+                <h4 class="text-xs font-bold text-stone-900">5-Min Timer & Pay Cash</h4>
+                <p class="text-[11px] text-stone-500">Watch the 5-min prep timer, pay cash on table.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 text-center">
+            <a href="#menu" class="text-xs font-bold text-orange-600 hover:underline">
+              Browse Menu Now &rarr;
             </a>
           </div>
-
-          <!-- Feature Highlights Badges -->
-          <div class="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-3">
-              <span class="text-2xl">🪑</span>
-              <div>
-                <h4 class="text-xs font-bold text-white">Table Dine-In</h4>
-                <p class="text-[11px] text-stone-300">Apne table number se order karein</p>
-              </div>
-            </div>
-
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-3">
-              <span class="text-2xl">💵</span>
-              <div>
-                <h4 class="text-xs font-bold text-white">Cash Only Mode</h4>
-                <p class="text-[11px] text-stone-300">Table / Counter par cash payment</p>
-              </div>
-            </div>
-
-            <div class="bg-white/10 backdrop-blur-md border border-white/10 p-4 rounded-xl flex items-center gap-3">
-              <span class="text-2xl">⏱️</span>
-              <div>
-                <h4 class="text-xs font-bold text-white">5-Min Fast Prep</h4>
-                <p class="text-[11px] text-stone-300">Taaza khana ready 5 minute me</p>
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Quick Steps Guide -->
-      <div class="max-w-4xl mx-auto px-4 sm:px-6 py-12">
-        <h3 class="text-center font-serif-heading text-2xl font-bold text-stone-900 mb-8">
-          Order Kaise Karein? (3 Simple Steps)
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-xs text-center">
-            <div class="w-12 h-12 bg-orange-100 text-orange-600 font-extrabold rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg">
-              1
-            </div>
-            <h4 class="text-sm font-bold text-stone-900 mb-1">Menu Dekhein</h4>
-            <p class="text-xs text-stone-500 leading-relaxed">
-              Pasandida khana select karke cart me add karein.
-            </p>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-xs text-center">
-            <div class="w-12 h-12 bg-orange-100 text-orange-600 font-extrabold rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg">
-              2
-            </div>
-            <h4 class="text-sm font-bold text-stone-900 mb-1">Table & Phone Dalein</h4>
-            <p class="text-xs text-stone-500 leading-relaxed">
-              Apna Table No. aur Phone number bhar kar Place Order dabayein.
-            </p>
-          </div>
-
-          <div class="bg-white p-6 rounded-2xl border border-stone-200/80 shadow-xs text-center">
-            <div class="w-12 h-12 bg-orange-100 text-orange-600 font-extrabold rounded-2xl flex items-center justify-center mx-auto mb-4 text-lg">
-              3
-            </div>
-            <h4 class="text-sm font-bold text-stone-900 mb-1">Khayein & Cash Dein</h4>
-            <p class="text-xs text-stone-500 leading-relaxed">
-              5 minute timer chalega, khana aane par table par cash pay karein.
-            </p>
-          </div>
-        </div>
-
-        <div class="text-center mt-10">
-          <a href="#menu" class="inline-flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700">
-            <span>Direct Menu Dekhein</span>
-            <span>&rarr;</span>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- ========================================== -->
-    <!-- VIEW 2: MENU & ORDERING PAGE (#menu) -->
-    <!-- ========================================== -->
-    <section id="menu-section" class="hidden max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-      <!-- Search & Veg/Non-Veg Filter Bar -->
-      <div class="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-xs mb-6">
-        <div class="flex flex-col sm:flex-row items-center gap-3">
+      <!-- ========================================== -->
+      <!-- VIEW 2: MENU & FOOD LIST (#menu)           -->
+      <!-- Swiggy / Zomato Mobile App Style Layout    -->
+      <!-- ========================================== -->
+      <section id="menu-section" class="hidden flex-1 flex flex-col">
+        <!-- Sticky Search & Veg Filter Header -->
+        <div class="sticky top-14 z-30 bg-white/95 backdrop-blur-md px-4 py-2.5 border-b border-stone-200 shadow-2xs space-y-2">
           <!-- Search Input -->
-          <div class="relative flex-1 w-full">
-            <span class="absolute inset-y-0 left-3 flex items-center text-stone-400 text-sm">🔍</span>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-3 flex items-center text-stone-400 text-xs">🔍</span>
             <input 
               type="text" 
               id="food-search-input" 
-              placeholder="Search dish (e.g. Paneer, Biryani, Coffee...)"
-              class="w-full pl-9 pr-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-sm focus:outline-none focus:border-orange-500 transition"
+              placeholder="Search dish (Paneer, Biryani...)"
+              class="w-full pl-8 pr-3 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-orange-500"
             />
           </div>
 
-          <!-- Veg / Non-Veg Toggles -->
-          <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+          <!-- Veg / Non-Veg Quick Toggles -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
             <button 
               onclick="app.setVegFilter('ALL')" 
               data-filter="ALL" 
-              class="veg-filter-btn px-3 py-2 text-xs font-bold rounded-xl bg-stone-900 text-white transition whitespace-nowrap"
+              class="veg-filter-btn px-3 py-1 rounded-lg text-xs font-bold bg-stone-900 text-white transition whitespace-nowrap"
             >
               All
             </button>
             <button 
               onclick="app.setVegFilter('VEG')" 
               data-filter="VEG" 
-              class="veg-filter-btn px-3 py-2 text-xs font-bold rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition flex items-center gap-1.5 whitespace-nowrap"
+              class="veg-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition flex items-center gap-1 whitespace-nowrap"
             >
               <span class="veg-badge"></span>
               <span>Veg Only</span>
@@ -241,349 +231,326 @@
             <button 
               onclick="app.setVegFilter('NON_VEG')" 
               data-filter="NON_VEG" 
-              class="veg-filter-btn px-3 py-2 text-xs font-bold rounded-xl bg-stone-100 text-stone-700 hover:bg-stone-200 transition flex items-center gap-1.5 whitespace-nowrap"
+              class="veg-filter-btn px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-100 text-stone-700 hover:bg-stone-200 transition flex items-center gap-1 whitespace-nowrap"
             >
               <span class="non-veg-badge"></span>
               <span>Non-Veg</span>
             </button>
           </div>
+
+          <!-- Horizontal Category Pills -->
+          <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-1" id="category-tabs">
+            <!-- Dynamically populated category buttons -->
+          </div>
         </div>
 
-        <!-- Horizontal Scrollable Category Pills -->
-        <div class="mt-3 pt-3 border-t border-stone-100 flex items-center gap-2 overflow-x-auto no-scrollbar" id="category-tabs">
-          <!-- Dynamically populated category buttons -->
+        <!-- Food Items List (Phone-Optimized List Layout) -->
+        <div id="menu-items-grid" class="p-4 space-y-3 flex-1">
+          <!-- Injected by app.renderMenu() -->
         </div>
-      </div>
+      </section>
 
-      <!-- Food Items Grid -->
-      <div id="menu-items-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <!-- Rendered by app.renderMenu() -->
-      </div>
-    </section>
-
-    <!-- ========================================== -->
-    <!-- VIEW 3: ORDER CONFIRMED & 5-MIN TIMER (#order-confirmed) -->
-    <!-- ========================================== -->
-    <section id="order-success-section" class="hidden max-w-xl mx-auto px-4 py-12">
-      <div class="bg-white rounded-3xl border border-stone-200 p-6 sm:p-8 shadow-md text-center">
-        <!-- Animated Success Icon -->
-        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">
-          ✓
-        </div>
-
-        <h2 class="text-2xl font-black text-stone-900 mb-1">
-          Order Receive Ho Gaya!
-        </h2>
-        <p class="text-xs text-stone-500 mb-6">
-          Hamare chef ne aapka khana prepare karna start kar diya hai.
-        </p>
-
-        <!-- Big 5-Minute Countdown Box -->
-        <div id="timer-container-box" class="timer-box p-6 rounded-2xl mb-6 shadow-inner text-center">
-          <span class="text-xs font-bold text-orange-950 uppercase tracking-widest">
-            Estimated Preparation Time
-          </span>
-
-          <div id="countdown-timer-display" class="font-mono text-5xl sm:text-6xl font-black text-orange-600 my-2 tracking-tight">
-            05:00
+      <!-- ========================================== -->
+      <!-- VIEW 3: ORDER CONFIRMED & 5-MIN TIMER      -->
+      <!-- ========================================== -->
+      <section id="order-success-section" class="hidden flex-1 p-5 flex flex-col justify-center">
+        <div class="bg-white rounded-3xl border border-stone-200 p-6 shadow-md text-center">
+          <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-2xl mx-auto mb-3 animate-bounce">
+            ✓
           </div>
 
-          <!-- Progress Bar -->
-          <div class="w-full bg-orange-200/80 h-2 rounded-full overflow-hidden mb-3">
-            <div id="timer-progress-bar" class="bg-orange-600 h-full w-0 transition-all duration-1000 ease-linear"></div>
-          </div>
-
-          <p id="timer-sub-message" class="text-xs text-stone-600 font-medium">
-            Aapka khana lagbhag 5 minute me aapke table par hoga!
+          <h2 class="text-xl font-black text-stone-900 mb-1">
+            Order Receive Ho Gaya!
+          </h2>
+          <p class="text-xs text-stone-500 mb-5">
+            Chef ne khana banana start kar diya hai.
           </p>
+
+          <!-- 5-Minute Countdown Box -->
+          <div id="timer-container-box" class="timer-box p-5 rounded-2xl mb-5 shadow-inner text-center">
+            <span class="text-[10px] font-bold text-orange-950 uppercase tracking-widest">
+              Estimated Preparation Time
+            </span>
+
+            <div id="countdown-timer-display" class="font-mono text-5xl font-black text-orange-600 my-1 tracking-tight">
+              05:00
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-orange-200/80 h-2 rounded-full overflow-hidden mb-2">
+              <div id="timer-progress-bar" class="bg-orange-600 h-full w-0 transition-all duration-1000 ease-linear"></div>
+            </div>
+
+            <p id="timer-sub-message" class="text-xs text-stone-600 font-medium">
+              Aapka khana 5 minute me Table par serve hoga!
+            </p>
+          </div>
+
+          <!-- Order Summary Card -->
+          <div class="bg-stone-50 rounded-2xl p-3.5 text-left border border-stone-200/80 mb-5 text-xs">
+            <div class="flex justify-between items-center border-b border-stone-200 pb-2 mb-2 font-bold">
+              <span class="text-stone-500">Order: <span id="confirmed-order-id" class="text-stone-900 font-mono">#ORD-101</span></span>
+              <span id="confirmed-table-no" class="px-2 py-0.5 bg-orange-600 text-white rounded text-[11px]">Table -</span>
+            </div>
+
+            <ul id="confirmed-items-list" class="mb-2 space-y-1"></ul>
+
+            <div class="flex justify-between items-center pt-2 border-t border-stone-200 font-black text-xs text-stone-900">
+              <span>Amount (Cash):</span>
+              <span id="confirmed-total-amount" class="text-sm text-orange-600">₹0</span>
+            </div>
+
+            <div class="mt-2.5 bg-amber-50 text-amber-900 p-2 rounded-lg border border-amber-200 text-center text-[10px] font-bold">
+              💵 Note: Kripya Table / Counter par Cash taiyar rakhein.
+            </div>
+          </div>
+
+          <a 
+            href="#menu" 
+            class="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition shadow active:scale-95 block"
+          >
+            Aur Items Order Karein &rarr;
+          </a>
         </div>
+      </section>
 
-        <!-- Order Summary Card -->
-        <div class="bg-stone-50 rounded-2xl p-4 text-left border border-stone-200/80 mb-6 text-xs">
-          <div class="flex justify-between items-center border-b border-stone-200 pb-2 mb-2 font-bold">
-            <span class="text-stone-500">Order ID: <span id="confirmed-order-id" class="text-stone-900 font-mono">#ORD-000</span></span>
-            <span id="confirmed-table-no" class="px-2.5 py-0.5 bg-orange-600 text-white rounded-md text-xs">Table -</span>
-          </div>
+    </main>
 
-          <!-- Items list -->
-          <ul id="confirmed-items-list" class="mb-3 space-y-1"></ul>
-
-          <div class="flex justify-between items-center pt-2 border-t border-stone-200 font-black text-sm text-stone-900">
-            <span>Amount Payable (Cash):</span>
-            <span id="confirmed-total-amount" class="text-base text-orange-600">₹0</span>
-          </div>
-
-          <div class="mt-3 bg-amber-50 text-amber-800 p-2.5 rounded-xl border border-amber-200 text-center text-[11px] font-semibold">
-            💵 Note: Kripya Table / Counter par Cash taiyar rakhein.
-          </div>
-        </div>
-
-        <a 
-          href="#menu" 
-          class="inline-flex items-center gap-2 px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold rounded-xl transition shadow active:scale-95"
-        >
-          <span>Aur Items Order Karein</span>
-          <span>&rarr;</span>
-        </a>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- ========================================== -->
-  <!-- FLOATING BOTTOM CART BAR (When in Menu) -->
-  <!-- ========================================== -->
-  <aside 
-    id="floating-cart-bar" 
-    class="hidden fixed bottom-4 inset-x-4 max-w-xl mx-auto z-30 bg-stone-900 text-white p-3.5 rounded-2xl shadow-2xl items-center justify-between border border-stone-700/60"
-  >
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center font-black text-sm">
-        <span class="cart-count-badge">0</span>
-      </div>
-      <div>
-        <p class="text-xs text-stone-400 font-medium">Cart Total</p>
-        <p class="cart-total-price text-base font-extrabold text-white">₹0</p>
-      </div>
-    </div>
-
-    <button 
-      onclick="app.openCartDrawer()"
-      class="px-5 py-2.5 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow-md transition active:scale-95 flex items-center gap-1.5"
+    <!-- ========================================== -->
+    <!-- STICKY BOTTOM FLOATING CART BAR            -->
+    <!-- ========================================== -->
+    <aside 
+      id="floating-cart-bar" 
+      class="hidden fixed bottom-3 inset-x-3 max-w-[420px] mx-auto z-30 bg-stone-900 text-white p-3 rounded-2xl shadow-2xl items-center justify-between border border-stone-700/60 animate-fade-in"
     >
-      <span>View Cart</span>
-      <span>🛒 &rarr;</span>
-    </button>
-  </aside>
-
-  <!-- ========================================== -->
-  <!-- CART DRAWER & CHECKOUT SLIDE-OVER -->
-  <!-- ========================================== -->
-  <div id="cart-backdrop" class="hidden fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-xs transition-opacity" onclick="app.closeCartDrawer()"></div>
-
-  <div 
-    id="cart-drawer" 
-    class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col"
-  >
-    <!-- Drawer Header -->
-    <div class="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🛒</span>
-        <h3 class="text-base font-bold text-stone-900">Your Cart</h3>
-        <span class="cart-count-badge bg-orange-100 text-orange-700 font-bold text-xs px-2 py-0.5 rounded-full">0</span>
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-orange-600 flex items-center justify-center font-black text-xs">
+          <span class="cart-count-badge">0</span>
+        </div>
+        <div>
+          <p class="text-[10px] text-stone-400 font-medium leading-none">Cart Total</p>
+          <p class="cart-total-price text-sm font-extrabold text-white leading-tight">₹0</p>
+        </div>
       </div>
+
       <button 
-        onclick="app.closeCartDrawer()"
-        class="w-8 h-8 rounded-full bg-stone-200 hover:bg-stone-300 flex items-center justify-center text-stone-600 transition"
+        onclick="app.openCartDrawer()"
+        class="px-4 py-2 bg-orange-600 hover:bg-orange-500 text-white text-xs font-bold rounded-xl shadow transition active:scale-95 flex items-center gap-1.5"
       >
-        ✕
+        <span>View Cart</span>
+        <span>🛒 &rarr;</span>
       </button>
-    </div>
+    </aside>
 
-    <!-- Empty State -->
-    <div id="cart-empty-state" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
-      <div class="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center text-3xl mb-3 text-stone-400">
-        🛒
-      </div>
-      <h4 class="text-base font-bold text-stone-800 mb-1">Aapka Cart Khali Hai</h4>
-      <p class="text-xs text-stone-500 mb-4">Menu se apne manpasand items add karein.</p>
-      <button 
-        onclick="app.closeCartDrawer()" 
-        class="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow"
-      >
-        Menu Dekhein
-      </button>
-    </div>
+    <!-- ========================================== -->
+    <!-- BOTTOM SHEET CART DRAWER                   -->
+    <!-- Mobile Native Bottom Sheet Design          -->
+    <!-- ========================================== -->
+    <div id="cart-backdrop" class="hidden fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs transition-opacity" onclick="app.closeCartDrawer()"></div>
 
-    <!-- Items List -->
-    <div id="cart-drawer-items" class="flex-1 overflow-y-auto p-4 space-y-2.5">
-      <!-- Injected by app.updateCartUI() -->
-    </div>
+    <div 
+      id="cart-drawer" 
+      class="fixed inset-x-0 bottom-0 max-w-md mx-auto z-50 bg-white rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 ease-in-out flex flex-col max-h-[88vh]"
+    >
+      <!-- Bottom Sheet Drag Handle -->
+      <div class="w-12 h-1.5 bg-stone-300 rounded-full mx-auto mt-2.5 mb-1 cursor-pointer" onclick="app.closeCartDrawer()"></div>
 
-    <!-- Checkout Form Section -->
-    <div id="cart-checkout-section" class="p-4 sm:p-5 border-t border-stone-200 bg-stone-50 space-y-4">
-      <!-- Total Breakdown -->
-      <div class="space-y-1.5 text-xs">
-        <div class="flex justify-between text-stone-600">
-          <span>Subtotal:</span>
-          <span class="cart-total-price font-bold text-stone-900">₹0</span>
+      <!-- Drawer Header -->
+      <div class="px-5 py-3 border-b border-stone-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🛒</span>
+          <h3 class="text-sm font-extrabold text-stone-900">Your Cart</h3>
+          <span class="cart-count-badge bg-orange-100 text-orange-700 font-bold text-xs px-2 py-0.5 rounded-full">0</span>
         </div>
-        <div class="flex justify-between text-stone-500">
-          <span>Taxes & Service:</span>
-          <span>₹0 (Included)</span>
-        </div>
-        <div class="flex justify-between text-stone-900 text-base font-black pt-2 border-t border-stone-200">
-          <span>Grand Total:</span>
-          <span class="cart-total-price text-orange-600">₹0</span>
-        </div>
+        <button 
+          onclick="app.closeCartDrawer()"
+          class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500 text-xs font-bold"
+        >
+          ✕
+        </button>
       </div>
 
-      <!-- Dine-in Details Form -->
-      <form id="order-checkout-form" class="space-y-3 pt-2">
-        <div class="grid grid-cols-2 gap-2.5">
-          <!-- Table Number (Required) -->
+      <!-- Empty State -->
+      <div id="cart-empty-state" class="py-12 px-6 flex flex-col items-center justify-center text-center">
+        <span class="text-4xl mb-2 text-stone-300">🛒</span>
+        <h4 class="text-sm font-bold text-stone-800">Cart Khali Hai</h4>
+        <p class="text-xs text-stone-500 mb-4">Menu se manpasand items add karein.</p>
+        <button onclick="app.closeCartDrawer()" class="px-4 py-2 bg-orange-600 text-white text-xs font-bold rounded-xl shadow">
+          Menu Dekhein
+        </button>
+      </div>
+
+      <!-- Items List -->
+      <div id="cart-drawer-items" class="overflow-y-auto px-4 py-2.5 space-y-2 flex-1">
+        <!-- Injected by app.updateCartUI() -->
+      </div>
+
+      <!-- Checkout Form Section -->
+      <div id="cart-checkout-section" class="p-4 border-t border-stone-200 bg-stone-50 space-y-3">
+        <!-- Total Row -->
+        <div class="flex justify-between items-center text-xs">
+          <span class="text-stone-600 font-medium">Grand Total:</span>
+          <span class="cart-total-price font-extrabold text-base text-orange-600">₹0</span>
+        </div>
+
+        <!-- Dine-in Details Form -->
+        <form id="order-checkout-form" class="space-y-2.5">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[10px] font-bold text-stone-700 uppercase mb-0.5">
+                Table No. <span class="text-red-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                id="order-table-no" 
+                placeholder="e.g. 4" 
+                required 
+                class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-bold text-stone-700 uppercase mb-0.5">
+                Mobile No. <span class="text-red-500">*</span>
+              </label>
+              <input 
+                type="tel" 
+                id="order-phone" 
+                placeholder="10-digit number" 
+                required 
+                pattern="[0-9]{10}"
+                maxlength="10"
+                class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-mono font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+              />
+            </div>
+          </div>
+
           <div>
-            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">
-              Table No. <span class="text-red-500">*</span>
+            <label class="block text-[10px] font-semibold text-stone-500 mb-0.5">
+              Customer Name <span class="text-stone-400 font-normal">(Optional)</span>
             </label>
             <input 
               type="text" 
-              id="order-table-no" 
-              placeholder="e.g. 5" 
-              required 
-              class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+              id="order-customer-name" 
+              placeholder="Aapka naam (optional)" 
+              class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
             />
           </div>
 
-          <!-- Customer Phone (Required) -->
+          <!-- Cash Notice -->
+          <div class="flex items-center gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-[11px] font-medium">
+            <span>💵</span>
+            <span>Mode: <strong>Cash on Table / Counter</strong></span>
+          </div>
+
+          <!-- Submit Order Button -->
+          <button 
+            type="submit" 
+            class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-orange-600/30 transition active:scale-98 flex items-center justify-center gap-2"
+          >
+            <span>Place Order (Cash)</span>
+            <span class="cart-total-price">₹0</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- FIRST-TIME RESTAURANT SETUP MODAL          -->
+    <!-- (Shown ONLY once if restaurant not setup)  -->
+    <!-- ========================================== -->
+    <div 
+      id="setup-modal" 
+      class="hidden fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md items-center justify-center p-4 overflow-y-auto"
+    >
+      <div class="bg-white rounded-3xl border border-stone-200 max-w-sm w-full p-6 shadow-2xl animate-slide-up">
+        <div class="w-12 h-12 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-3">
+          ✨
+        </div>
+
+        <h2 class="text-lg font-black text-stone-900 text-center mb-1">
+          Setup Your Restaurant
+        </h2>
+        <p class="text-[11px] text-stone-500 text-center mb-5">
+          Restaurant ka naam aur Admin Login ID / PIN set karein. Ye sirf ek baar setup hoga.
+        </p>
+
+        <form id="first-time-setup-form" class="space-y-3">
           <div>
-            <label class="block text-[11px] font-bold text-stone-700 uppercase mb-1">
-              Mobile No. <span class="text-red-500">*</span>
+            <label class="block text-xs font-bold text-stone-700 mb-1">
+              Restaurant Name *
             </label>
             <input 
-              type="tel" 
-              id="order-phone" 
-              placeholder="10-digit number" 
+              type="text" 
+              id="setup-res-name" 
+              placeholder="e.g. Shahi Darbar" 
               required 
-              pattern="[0-9]{10}"
-              maxlength="10"
-              class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-mono font-bold text-stone-900 focus:outline-none focus:border-orange-500"
+              class="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-semibold text-stone-900 focus:outline-none focus:border-orange-500"
             />
           </div>
-        </div>
 
-        <!-- Customer Name (Optional) -->
-        <div>
-          <label class="block text-[11px] font-semibold text-stone-500 mb-1">
-            Customer Name <span class="text-stone-400 font-normal">(Optional)</span>
-          </label>
-          <input 
-            type="text" 
-            id="order-customer-name" 
-            placeholder="Aapka naam (optional)" 
-            class="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:border-orange-500"
-          />
-        </div>
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">
+              Admin User ID *
+            </label>
+            <input 
+              type="text" 
+              id="setup-admin-id" 
+              value="admin" 
+              required 
+              class="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-stone-900 focus:outline-none focus:border-orange-500"
+            />
+          </div>
 
-        <!-- Cash Mode Badge -->
-        <div class="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs font-medium">
-          <span class="text-base">💵</span>
-          <span>Payment: <strong>Cash on Table / Counter</strong></span>
-        </div>
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">
+              Admin Security PIN *
+            </label>
+            <input 
+              type="password" 
+              id="setup-admin-pin" 
+              placeholder="e.g. 1234" 
+              required 
+              class="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono text-stone-900 focus:outline-none focus:border-orange-500"
+            />
+          </div>
 
-        <!-- Submit Button -->
-        <button 
-          type="submit" 
-          class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition active:scale-95 flex items-center justify-center gap-2"
-        >
-          <span>Place Order (Cash)</span>
-          <span class="cart-total-price">₹0</span>
-        </button>
-      </form>
+          <div class="flex items-center gap-2 p-2.5 bg-stone-50 rounded-xl border border-stone-200">
+            <input 
+              type="checkbox" 
+              id="setup-load-samples" 
+              checked 
+              class="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 border-stone-300"
+            />
+            <label for="setup-load-samples" class="text-[11px] text-stone-700 font-medium cursor-pointer">
+              Starter Menu load karein (10 Popular Items)
+            </label>
+          </div>
+
+          <button 
+            type="submit" 
+            class="w-full py-3 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-orange-600/30 transition active:scale-95"
+          >
+            Save & Launch Restaurant &rarr;
+          </button>
+        </form>
+      </div>
     </div>
+
   </div>
 
-  <!-- ========================================== -->
-  <!-- FIRST-TIME RESTAURANT SETUP MODAL -->
-  <!-- (Shown ONLY once if restaurant is not setup) -->
-  <!-- ========================================== -->
-  <div 
-    id="setup-modal" 
-    class="hidden fixed inset-0 z-50 bg-stone-950/80 backdrop-blur-md items-center justify-center p-4 overflow-y-auto"
-  >
-    <div class="bg-white rounded-3xl border border-stone-200 max-w-md w-full p-6 sm:p-8 shadow-2xl animate-slide-up">
-      <div class="w-14 h-14 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
-        ✨
-      </div>
-
-      <h2 class="text-xl sm:text-2xl font-black text-stone-900 text-center mb-1">
-        Setup Your Restaurant
-      </h2>
-      <p class="text-xs text-stone-500 text-center mb-6">
-        Apne restaurant ka naam aur Admin User ID / PIN set karein. Ye sirf ek baar setup hoga.
-      </p>
-
-      <form id="first-time-setup-form" class="space-y-4">
-        <div>
-          <label class="block text-xs font-bold text-stone-700 mb-1">
-            Restaurant Name <span class="text-red-500">*</span>
-          </label>
-          <input 
-            type="text" 
-            id="setup-res-name" 
-            placeholder="e.g. Royal Zaika Restaurant" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm font-semibold text-stone-900 focus:outline-none focus:border-orange-500"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-stone-700 mb-1">
-            Admin User ID <span class="text-red-500">*</span>
-          </label>
-          <input 
-            type="text" 
-            id="setup-admin-id" 
-            value="admin" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm font-mono text-stone-900 focus:outline-none focus:border-orange-500"
-          />
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-stone-700 mb-1">
-            Admin Security PIN <span class="text-red-500">*</span>
-          </label>
-          <input 
-            type="password" 
-            id="setup-admin-pin" 
-            placeholder="e.g. 1234" 
-            required 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-sm font-mono text-stone-900 focus:outline-none focus:border-orange-500"
-          />
-          <p class="text-[11px] text-stone-400 mt-1">Admin Panel login karne ke liye ye PIN yaad rakhein.</p>
-        </div>
-
-        <div class="flex items-center gap-2 p-3 bg-stone-50 rounded-xl border border-stone-200">
-          <input 
-            type="checkbox" 
-            id="setup-load-samples" 
-            checked 
-            class="w-4 h-4 text-orange-600 rounded focus:ring-orange-500 border-stone-300"
-          />
-          <label for="setup-load-samples" class="text-xs text-stone-700 font-medium cursor-pointer">
-            Starter Menu load karein (10 Popular Indian Food Items)
-          </label>
-        </div>
-
-        <button 
-          type="submit" 
-          class="w-full py-3.5 bg-orange-600 hover:bg-orange-700 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-orange-600/30 transition active:scale-95"
-        >
-          Save & Launch Restaurant &rarr;
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- FOOTER -->
-  <footer class="mt-auto bg-stone-900 text-stone-400 py-8 px-4 sm:px-6 text-xs border-t border-stone-800">
-    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
-      <div>
-        <p class="font-bold text-white text-sm brand-name">Apna Restaurant</p>
-        <p class="text-stone-500 text-[11px] mt-0.5">Dine-in Table Service &bull; Cash on Table Mode</p>
-      </div>
-
-      <div class="flex items-center gap-4">
-        <a href="#welcome" class="hover:text-white transition">Home</a>
-        <a href="#menu" class="hover:text-white transition">Menu</a>
-        <a href="admin.html" class="hover:text-white transition font-semibold text-orange-400">Owner / Admin Login</a>
-      </div>
-    </div>
-  </footer>
-
-  <!-- SCRIPT FILES -->
+  <!-- SCRIPT FILES & PWA REGISTRATION -->
   <script src="js/store.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(() => console.log('Service Worker Registered!'))
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+  </script>
 </body>
 </html>
